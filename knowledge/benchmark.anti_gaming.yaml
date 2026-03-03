@@ -1,0 +1,897 @@
+# Anti-Gaming Benchmark: RADAR vs Numinous (SN6) vs Gradients (SN56)
+# Structured comparison of anti-gaming mechanisms across subnets
+# that share the container_execution pattern
+
+metadata:
+  purpose: |
+    Side-by-side benchmark of anti-gaming properties for three subnets
+    that use the container_execution pattern (miners submit code, validators run it).
+    Identifies where RADAR leads, matches, or lags against proven designs.
+  subnets_compared:
+    radar:
+      name: "RADAR (Chi)"
+      pattern: "container_execution + evolutionary lineage + scaling-law scoring"
+      commodity: "neural architecture search code"
+      status: "in design"
+    numinous:
+      name: "Numinous (SN6)"
+      pattern: "container_execution + prediction_market hybrid"
+      commodity: "forecasting agent code"
+      status: "live on mainnet"
+    gradients:
+      name: "Gradients / G.O.D (SN56)"
+      pattern: "container_execution + tournament knockout"
+      commodity: "fine-tuning training code"
+      status: "live on mainnet"
+
+# =============================================================================
+# DIMENSION 1: SUBMISSION MODEL
+# What miners submit and how it's executed
+# =============================================================================
+
+submission_model:
+  radar:
+    what_submitted: "Architecture definition code (model builder function)"
+    format: "Docker image committed to chain via Basilica"
+    execution_by: "Validators train architecture on controlled data"
+    compute_location: "Validator infrastructure (training)"
+    update_frequency: "Per-epoch (new architectures each epoch)"
+    transparency: "Open source, Docker image is full submission"
+
+  numinous:
+    what_submitted: "Forecasting agent code (Python function)"
+    format: "Python code submitted to subnet"
+    execution_by: "Validators run in Docker sandboxes"
+    compute_location: "Validator infrastructure (inference)"
+    update_frequency: "Once per 3 days max"
+    transparency: "MIT licensed, all code public"
+
+  gradients:
+    what_submitted: "Fine-tuning training script (code link)"
+    format: "Link to code repository"
+    execution_by: "Validators run in isolated containers"
+    compute_location: "Validator infrastructure (training)"
+    update_frequency: "Per tournament (weekly)"
+    transparency: "Winning code open-sourced"
+
+  benchmark_verdict:
+    leader: "RADAR and Gradients (both submit training code)"
+    rationale: |
+      RADAR and Gradients both submit code that is then TRAINED by validators,
+      creating stronger verification than Numinous (which only runs inference).
+      Training-time verification reveals more about code quality than
+      single-pass execution.
+    radar_advantage: |
+      RADAR's per-epoch submission cadence is more frequent than Gradients'
+      weekly tournaments, allowing faster evolutionary iteration.
+
+# =============================================================================
+# DIMENSION 2: GROUND TRUTH SOURCE
+# Where the "correct answer" comes from
+# =============================================================================
+
+ground_truth:
+  radar:
+    source: "Training loss improvement over parent architecture"
+    type: "direct measurement (deterministic)"
+    delay: "Immediate (after training completes)"
+    validator_controls_truth: false
+    leakability: "Low - ground truth IS the training outcome"
+    detail: |
+      Ground truth is the measured training loss curve of the architecture
+      when trained by the validator. This is deterministic given fixed data,
+      fixed seed, and fixed hyperparameters. Validators cannot fake it without
+      actually running the training.
+    secondary_signal: "Scaling exponent gamma from log-log loss vs FLOP curve"
+
+  numinous:
+    source: "Binary event outcomes from Polymarket/Azuro"
+    type: "external oracle (delayed)"
+    delay: "Hours to weeks (until event resolves)"
+    validator_controls_truth: false
+    leakability: "Low - external oracle, after deadline"
+    detail: |
+      Ground truth comes from real-world prediction market resolution.
+      No single validator can manipulate outcomes. Delayed nature means
+      gaming requires sustained calibration, not one-off tricks.
+
+  gradients:
+    source: "Performance on SECRET held-out test sets"
+    type: "validator-controlled (dangerous)"
+    delay: "Immediate (after training completes)"
+    validator_controls_truth: true
+    leakability: "HIGH - validators know test set answers"
+    detail: |
+      Validators maintain secret evaluation data. Per Chi knowledge base
+      trust.assumptions.yaml: "Any secret held by validators WILL leak."
+      This is the weakest ground truth model of the three.
+
+  benchmark_verdict:
+    leader: "RADAR"
+    rationale: |
+      RADAR's ground truth (training loss improvement) is EMERGENT from
+      computation, not from a secret dataset. Validators cannot leak it
+      because there's nothing to leak - the truth IS the training outcome.
+      Numinous is also strong (external oracle). Gradients is weakest
+      due to reliance on secret eval sets that Chi's own knowledge base
+      explicitly labels FORBIDDEN (validator.rules.yaml line 52).
+    risk_matrix:
+      radar: "Minimal - deterministic, emergent from compute"
+      numinous: "Low - external oracle, post-deadline"
+      gradients: "High - secret sets will leak on valuable subnets"
+
+# =============================================================================
+# DIMENSION 3: SYBIL RESISTANCE
+# How the subnet prevents multi-identity gaming
+# =============================================================================
+
+sybil_resistance:
+  radar:
+    primary: "Pareto frontier natural deduplication"
+    mechanism: |
+      Multiple UIDs with identical architectures land on the same point
+      on the Pareto frontier. Only distinct non-dominated architectures
+      earn rewards. Copies tie with original, earning nothing extra.
+    secondary: "UID pressure (protocol-level registration costs)"
+    tertiary: "Penalty exponent (2.5) in softmax makes splitting unprofitable"
+    effectiveness: "HIGH - mathematical proof that copies don't help"
+
+  numinous:
+    primary: "Rolling 100-event window averaging"
+    mechanism: |
+      Running N copies of the same agent produces N identical Brier scores.
+      Winner-takes-all weighting means only the BEST agent earns.
+      Copies split nothing because rewards go to rank, not volume.
+    secondary: "UID pressure (protocol-level)"
+    tertiary: "3-day update rate limiting"
+    effectiveness: "MEDIUM-HIGH - winner-takes-all helps, but no explicit anti-dup"
+
+  gradients:
+    primary: "Tournament bracket structure"
+    mechanism: |
+      32-miner cap per tournament, selected by ALPHA stake.
+      Duplicate entries would compete against each other in brackets.
+      Champion margin (5-10%) means copies can't both win.
+    secondary: "UID pressure (protocol-level)"
+    tertiary: "Stake-based tournament entry"
+    effectiveness: "MEDIUM - stake-gating helps but doesn't prevent wealthy sybils"
+
+  benchmark_verdict:
+    leader: "RADAR"
+    rationale: |
+      RADAR's Pareto deduplication is mathematically rigorous:
+      identical submissions cannot dominate each other, so copies
+      are provably worthless. Combined with the penalty exponent 2.5
+      in softmax weight computation, splitting across UIDs is strictly
+      worse than consolidating on one. Numinous achieves similar
+      via winner-takes-all but lacks formal deduplication. Gradients
+      relies on stake-gating which is bypass-able with capital.
+
+# =============================================================================
+# DIMENSION 4: COPY ATTACK RESISTANCE
+# How the subnet prevents copying winning strategies
+# =============================================================================
+
+copy_resistance:
+  radar:
+    mechanism: "Evolutionary lineage + parent assignment"
+    detail: |
+      Each architecture is ASSIGNED a parent by the validator.
+      Scoring measures IMPROVEMENT over that specific parent.
+      Copying an existing architecture gives zero improvement
+      (it IS the parent). To earn, you must demonstrate delta.
+    additional:
+      - "Parentless epochs inject fresh randomness, breaking lock-in"
+      - "Scaling exponent gamma rewards novel scaling behavior"
+      - "Pareto frontier means copies tie, never dominate"
+    effectiveness: "VERY HIGH - improvement-over-parent makes copying zero-value"
+
+  numinous:
+    mechanism: "All code public + Brier Score over 100 events"
+    detail: |
+      Code is MIT licensed, so copying is trivially easy and EXPECTED.
+      However, copying the current best agent just ties with it.
+      Winner-takes-all means ties are split, not doubled.
+      The real defense is that improvement requires genuine innovation.
+    additional:
+      - "3-day update rate limit prevents rapid copy-and-tweak"
+      - "Rolling window means consistent performance required"
+    effectiveness: "MEDIUM - copying is easy but not advantageous (ties)"
+
+  gradients:
+    mechanism: "Secret test sets + champion margin"
+    detail: |
+      Miners can't copy the evaluation criteria (held-out test set).
+      Challengers must beat champion by 5-10% margin.
+      Winning code is open-sourced, creating copy-and-improve pressure.
+    additional:
+      - "Tournament elimination means copies compete against each other"
+      - "Open-sourced winners create rising baseline"
+    effectiveness: "MEDIUM - relies on secret sets (leakable) for copy prevention"
+
+  benchmark_verdict:
+    leader: "RADAR"
+    rationale: |
+      RADAR's parent-assignment system is uniquely powerful: the validator
+      controls WHICH architecture is the parent for each miner, and scoring
+      measures delta over that parent. Copying the leader means being
+      assigned the leader as your parent, yielding zero improvement.
+      This is a structural guarantee, not a statistical one.
+      Numinous's approach (copying ties but doesn't help) is sound but passive.
+      Gradients' reliance on secret test sets for copy prevention is fragile.
+
+# =============================================================================
+# DIMENSION 5: OVERFITTING RESISTANCE
+# How the subnet prevents narrow optimization / benchmark gaming
+# =============================================================================
+
+overfitting_resistance:
+  radar:
+    mechanism: "Multi-axis Pareto + scaling exponent"
+    axes:
+      - "Training loss improvement (absolute quality)"
+      - "Scaling exponent gamma (how well does loss decrease with compute)"
+      - "Parameter efficiency (quality per parameter)"
+    detail: |
+      Must dominate on ALL axes to reach the Pareto frontier.
+      The scaling exponent gamma is particularly anti-gaming: it
+      measures the SLOPE of the log-log loss vs FLOP curve, which
+      cannot be trivially manipulated without genuine architectural
+      innovation. Optimizing for one axis while ignoring others
+      drops you off the frontier.
+    additional:
+      - "Challenge categories vary (vision, NLP, etc.)"
+      - "Parentless epochs break adaptation loops"
+
+  numinous:
+    mechanism: "100-event rolling window + diverse real-world events"
+    detail: |
+      Events span sports, politics, economics, weather, etc.
+      Overfitting to one domain hurts performance on others.
+      100-event window means consistent calibration required.
+      Real-world events are inherently unpredictable.
+    additional:
+      - "Binary prediction format is simple but hard to game"
+      - "Brier Score is a proper scoring rule (calibration-rewarding)"
+
+  gradients:
+    mechanism: "Multiple task types + secret test sets"
+    detail: |
+      Four task types: Instruct, DPO, GRPO, Diffusion.
+      Must perform across task types. Secret test sets prevent
+      direct optimization (but can leak per trust model).
+    additional:
+      - "Tournament consistency windows (1, 3, 7 days)"
+      - "Boss round uses multiple evaluation tasks"
+
+  benchmark_verdict:
+    leader: "RADAR (with Numinous close second)"
+    rationale: |
+      RADAR's scaling exponent axis is uniquely anti-gaming. It measures
+      a fundamental property of the architecture (how well it scales with
+      compute) that cannot be faked without genuine neural architecture
+      innovation. Combined with multi-axis Pareto, it forces broad
+      competence. Numinous's diverse real-world events are similarly
+      hard to game. Gradients' multiple task types help but rely
+      on secret data for the actual measurement.
+
+# =============================================================================
+# DIMENSION 6: VALIDATION PIPELINE DEPTH
+# How many stages of filtering exist
+# =============================================================================
+
+pipeline_depth:
+  radar:
+    stages: 4
+    funnel:
+      stage_1:
+        name: "Proxy evaluation"
+        compute_cost: "LOW"
+        purpose: "Quick filter on obviously bad architectures"
+        detail: "Short training run, check basic loss convergence"
+      stage_2:
+        name: "Extended training"
+        compute_cost: "MEDIUM"
+        purpose: "Full training run to measure loss curve"
+        detail: "Measure training loss at multiple checkpoints"
+      stage_3:
+        name: "Scaling law fit"
+        compute_cost: "LOW (computation on existing data)"
+        purpose: "Fit log-log curve, extract scaling exponent gamma"
+        detail: "Compute gamma from checkpoint loss vs FLOP data"
+      stage_4:
+        name: "Pareto frontier placement"
+        compute_cost: "NEGLIGIBLE"
+        purpose: "Determine if architecture is non-dominated"
+        detail: "Multi-axis dominance check across all miners"
+    total_compute_gating: |
+      Stage 1 eliminates ~80% of submissions cheaply.
+      Only promising architectures proceed to full evaluation.
+      This is the deepest funnel of the three subnets.
+
+  numinous:
+    stages: 3
+    funnel:
+      stage_1:
+        name: "Code validation"
+        compute_cost: "NEGLIGIBLE"
+        purpose: "Verify code executes without errors"
+        detail: "Basic syntax and function signature check"
+      stage_2:
+        name: "Sandbox execution"
+        compute_cost: "LOW-MEDIUM"
+        purpose: "Run agent on event, collect prediction"
+        detail: "Docker sandbox, 150s timeout, $0.02 cost cap"
+      stage_3:
+        name: "Brier Score aggregation"
+        compute_cost: "NEGLIGIBLE"
+        purpose: "Score over 100-event rolling window"
+        detail: "Average Brier Score, winner-takes-all weighting"
+    total_compute_gating: |
+      No early elimination. All agents execute on every event.
+      Scoring is retrospective via rolling window.
+      Compute cost is bounded by 150s timeout per agent per event.
+
+  gradients:
+    stages: 3
+    funnel:
+      stage_1:
+        name: "Stake-based selection"
+        compute_cost: "NONE"
+        purpose: "Select top 32 miners by ALPHA stake"
+        detail: "Pre-filter before compute-intensive evaluation"
+      stage_2:
+        name: "Training execution"
+        compute_cost: "HIGH"
+        purpose: "Run miner's training code on validator infra"
+        detail: "Full fine-tuning run in isolated container"
+      stage_3:
+        name: "Tournament bracket"
+        compute_cost: "MEDIUM (repeated evaluation)"
+        purpose: "Knockout elimination to find champion"
+        detail: "Multiple rounds, boss fight with margin requirement"
+    total_compute_gating: |
+      Stake-based pre-filter limits to 32 miners.
+      But all 32 get full training runs (expensive).
+      Tournament structure adds rounds but not filtering efficiency.
+
+  benchmark_verdict:
+    leader: "RADAR"
+    rationale: |
+      RADAR has the deepest and most cost-efficient funnel: 4 stages
+      with aggressive early elimination at Stage 1 (proxy evaluation).
+      This means ~80% of compute is avoided on bad submissions.
+      Numinous is lightweight per-event but doesn't eliminate.
+      Gradients runs all 32 miners through full training before
+      any elimination — the most compute-expensive approach.
+
+# =============================================================================
+# DIMENSION 7: TEMPORAL GAMING RESISTANCE
+# How the subnet prevents time-based gaming strategies
+# =============================================================================
+
+temporal_gaming:
+  radar:
+    mechanisms:
+      assigned_parents: |
+        Validators assign which architecture is each miner's parent.
+        This prevents miners from cherry-picking favorable baselines.
+      parentless_epochs: |
+        Periodically, architectures start from random initialization
+        with no parent. This breaks temporal lock-in and prevents
+        "kingmaker" dynamics where controlling the lineage root
+        gives unfair advantage.
+      per_epoch_evaluation: |
+        Every epoch produces fresh evaluation. No accumulated historical
+        advantage — each architecture proves its worth independently.
+    effectiveness: "HIGH - multiple temporal gaming vectors addressed"
+
+  numinous:
+    mechanisms:
+      3_day_update_limit: |
+        Miners can only update code once per 3 days.
+        Prevents rapid adaptation to leaked information.
+      next_day_activation: |
+        Code changes take effect at 00:00 UTC next day.
+        Cannot adjust after seeing event details.
+      pre_registration: |
+        Only agents registered BEFORE event broadcast execute.
+        Prevents late-entry gaming.
+    effectiveness: "HIGH - rate limiting + pre-registration is robust"
+
+  gradients:
+    mechanisms:
+      weekly_tournaments: |
+        Fixed tournament windows prevent timing games.
+      72_hour_gap: |
+        Gap between tournaments prevents cross-tournament gaming.
+      champion_system: |
+        Defending champions must be beaten by margin.
+        Historical advantage decays with increasing margin requirements.
+    effectiveness: "MEDIUM - tournament structure helps but is rigid"
+
+  benchmark_verdict:
+    leader: "Tie (RADAR and Numinous)"
+    rationale: |
+      Both RADAR and Numinous address temporal gaming through complementary
+      mechanisms. RADAR's assigned parents + parentless epochs prevent lineage
+      manipulation. Numinous's rate limiting + pre-registration prevents
+      information-advantage gaming. Different approaches for different
+      temporal attack surfaces, both effective.
+
+# =============================================================================
+# DIMENSION 8: VALIDATOR COLLUSION RESISTANCE
+# How the subnet handles dishonest validators
+# =============================================================================
+
+validator_collusion:
+  radar:
+    trust_model: "Validators run deterministic training — results reproducible"
+    attack_surface: |
+      Validators execute training on controlled data with fixed seeds.
+      A dishonest validator would need to fake training loss data.
+      Other validators running the same architecture would detect
+      inconsistency via Yuma Consensus (outlier clipping).
+    mitigations:
+      - "Deterministic training (fixed seed, data, hyperparams)"
+      - "Multiple validators independently verify"
+      - "Yuma Consensus clips outlier weight submissions"
+      - "No secret data for validators to leak"
+    residual_risk: "Validator could leak promising architectures to own miners early"
+
+  numinous:
+    trust_model: "Deterministic execution via gateway proxy"
+    attack_surface: |
+      Gateway ensures consistent data across validators.
+      Deterministic requirements (no randomness, no timestamps)
+      mean validators should compute identical results.
+    mitigations:
+      - "Gateway proxy mediates all external access"
+      - "Determinism requirements enforced"
+      - "Yuma Consensus clips outliers"
+    residual_risk: "Validator could run own agent with privileged data access"
+
+  gradients:
+    trust_model: "Validators control secret test sets (weakest model)"
+    attack_surface: |
+      Validators know the evaluation criteria AND answers.
+      This is exactly the attack pattern described in
+      trust.assumptions.yaml: validator shares test set with own miner.
+    mitigations:
+      - "Multiple validators with different test sets (if implemented)"
+      - "Yuma Consensus for weight agreement"
+    residual_risk: "HIGH - secret test set leakage is an invisible, certain attack"
+
+  benchmark_verdict:
+    leader: "RADAR"
+    rationale: |
+      RADAR's deterministic training with no secret data is the strongest
+      model. Validators have nothing to leak because ground truth emerges
+      from computation. Numinous is nearly as strong due to external oracle
+      ground truth. Gradients is structurally vulnerable — validators hold
+      the answers and can share them with colluding miners undetectably.
+
+# =============================================================================
+# DIMENSION 9: ECONOMIC GAMING RESISTANCE
+# How the subnet prevents economic/stake-based gaming
+# =============================================================================
+
+economic_gaming:
+  radar:
+    mechanisms:
+      pareto_frontier: "Only non-dominated architectures earn, regardless of stake"
+      penalty_exponent: |
+        softmax with exponent 2.5 makes reward curve super-linear.
+        Concentrating on one strong UID is always better than splitting
+        across N weak UIDs: score^2.5 > N * (score/N)^2.5
+      no_stake_advantage: |
+        Architecture quality is the only scoring input.
+        Stake does not influence evaluation outcomes.
+    vulnerability: "Wealthy miners could fund more research iterations offline"
+
+  numinous:
+    mechanisms:
+      winner_takes_all: "Top Brier score agent gets disproportionate weight"
+      quality_only: "Brier Score is a proper scoring rule — honest prediction is optimal"
+      no_stake_influence: "Scoring is purely on prediction accuracy"
+    vulnerability: "Wealthy miners could afford more API calls ($0.02 cap helps)"
+
+  gradients:
+    mechanisms:
+      stake_gated_entry: "Top 32 by ALPHA stake enter tournament"
+      champion_margin: "Defender advantage via 5-10% margin"
+      performance_bonus: "Past winners get stake bonus"
+    vulnerability: |
+      Stake-gated entry means capital IS an advantage.
+      Wealthy miners can secure tournament slots regardless of code quality.
+      This creates a pay-to-play dynamic absent in RADAR and Numinous.
+
+  benchmark_verdict:
+    leader: "RADAR"
+    rationale: |
+      RADAR's penalty exponent 2.5 is a clean mathematical solution:
+      it makes UID splitting strictly worse than consolidation.
+      Combined with Pareto frontier (quality-only, stake-blind),
+      economic gaming has minimal attack surface. Numinous is also
+      strong (quality-only scoring). Gradients' stake-gated tournament
+      entry introduces capital advantage that undermines meritocracy.
+
+# =============================================================================
+# DIMENSION 10: NOVELTY / INNOVATION INCENTIVE
+# How the subnet rewards genuine innovation vs incremental copying
+# =============================================================================
+
+innovation_incentive:
+  radar:
+    mechanisms:
+      scaling_exponent: |
+        Gamma measures HOW WELL an architecture scales with compute.
+        This is a fundamental architectural property that requires
+        genuine neural architecture innovation to improve.
+        Cannot be trivially copied or incrementally tuned.
+      evolutionary_lineage: |
+        Each architecture builds on assigned parents.
+        Innovation is measured as DELTA over parent.
+        Pure copies yield zero delta. Must genuinely improve.
+      parentless_epochs: |
+        Fresh random starts prevent lineage monopoly.
+        Allows radically different architecture families to emerge.
+      agent_meta_layer: |
+        Miners can submit "agents that design architectures" —
+        meta-level innovation where the agent itself innovates.
+    innovation_pressure: "VERY HIGH - multiple mechanisms force genuine novelty"
+
+  numinous:
+    mechanisms:
+      open_code_learning: |
+        All code MIT licensed. Miners learn from each other.
+        Creates rising baseline but rewards improvement.
+      diverse_events: |
+        Real-world events are inherently novel. Cannot pre-optimize
+        for unknown future events. Forces adaptive innovation.
+    innovation_pressure: "MEDIUM - rewards calibration, not necessarily novelty"
+
+  gradients:
+    mechanisms:
+      open_source_winners: |
+        Winning training code is published. Creates rising baseline.
+        Future competitors must improve on published methods.
+      multiple_task_types: |
+        Four task types reward breadth of innovation.
+      champion_margin: |
+        Must beat champion by 5-10%, forcing meaningful improvement.
+    innovation_pressure: "MEDIUM-HIGH - champion margin forces real improvement"
+
+  benchmark_verdict:
+    leader: "RADAR"
+    rationale: |
+      RADAR has the strongest innovation forcing function. The scaling
+      exponent axis specifically rewards FUNDAMENTAL architectural
+      innovation (not incremental parameter tuning). The improvement-over-
+      parent mechanism makes copying zero-value. The agent meta-layer
+      opens an entirely new innovation dimension. No other subnet
+      has this depth of innovation incentive.
+
+# =============================================================================
+# COMPOSITE SCORECARD
+# =============================================================================
+
+composite_scorecard:
+  dimensions:
+    submission_model:
+      radar: "A"
+      numinous: "B+"
+      gradients: "A-"
+      notes: "RADAR and Gradients both submit training code; Numinous is inference-only"
+
+    ground_truth:
+      radar: "A+"
+      numinous: "A"
+      gradients: "C"
+      notes: "Gradients' secret test sets violate Chi's own trust model"
+
+    sybil_resistance:
+      radar: "A+"
+      numinous: "B+"
+      gradients: "B"
+      notes: "RADAR's Pareto + penalty exponent is mathematically rigorous"
+
+    copy_resistance:
+      radar: "A+"
+      numinous: "B"
+      gradients: "B-"
+      notes: "RADAR's parent-assignment makes copying provably zero-value"
+
+    overfitting_resistance:
+      radar: "A+"
+      numinous: "A"
+      gradients: "B"
+      notes: "Scaling exponent gamma is uniquely hard to game"
+
+    pipeline_depth:
+      radar: "A+"
+      numinous: "B"
+      gradients: "B-"
+      notes: "RADAR's 4-stage funnel is most compute-efficient"
+
+    temporal_gaming:
+      radar: "A"
+      numinous: "A"
+      gradients: "B+"
+      notes: "RADAR and Numinous address different temporal vectors well"
+
+    validator_collusion:
+      radar: "A+"
+      numinous: "A"
+      gradients: "C-"
+      notes: "Gradients' validator-held secrets are structurally vulnerable"
+
+    economic_gaming:
+      radar: "A+"
+      numinous: "A"
+      gradients: "B-"
+      notes: "Gradients' stake-gated entry creates pay-to-play dynamic"
+
+    innovation_incentive:
+      radar: "A+"
+      numinous: "B"
+      gradients: "B+"
+      notes: "RADAR's scaling exponent + agent meta-layer is unmatched"
+
+  summary:
+    radar:
+      overall: "A+"
+      strengths:
+        - "Deepest anti-gaming stack in the ecosystem"
+        - "Ground truth emerges from computation (unleakable)"
+        - "Pareto + penalty exponent = mathematically rigorous sybil resistance"
+        - "Parent-assignment makes copying provably zero-value"
+        - "Scaling exponent rewards fundamental innovation"
+        - "4-stage funnel is most compute-efficient pipeline"
+      weaknesses:
+        - "Untested in production (still in design phase)"
+        - "Complex design may have undiscovered attack surfaces"
+        - "Heavy validator compute burden (training architectures)"
+        - "Agent meta-layer adds complexity and potential gaming vectors"
+      key_risk: "Theoretical strength, unproven in adversarial reality"
+
+    numinous:
+      overall: "A-"
+      strengths:
+        - "External oracle ground truth (Polymarket/Azuro) is robust"
+        - "Brier Score is proper scoring rule — honest prediction is optimal"
+        - "Gateway proxy ensures deterministic, consistent execution"
+        - "Rate limiting prevents rapid adaptation gaming"
+        - "Battle-tested on mainnet"
+      weaknesses:
+        - "No explicit sybil deduplication mechanism"
+        - "No innovation forcing function (rewards calibration, not novelty)"
+        - "Winner-takes-all creates high variance"
+        - "Forecasting domain is narrower than NAS"
+      key_risk: "Limited innovation pressure — rewards playing it safe"
+
+    gradients:
+      overall: "B"
+      strengths:
+        - "Code submission model (reproducible, transparent)"
+        - "Tournament structure creates clear competitive dynamics"
+        - "Champion margin forces meaningful improvement"
+        - "Open-sourced winners create rising baseline"
+        - "Multiple task types prevent narrow specialization"
+      weaknesses:
+        - "SECRET TEST SETS violate trust model (will leak)"
+        - "Stake-gated entry creates pay-to-play dynamic"
+        - "No Pareto-style sybil resistance"
+        - "Expensive: all 32 miners get full training runs"
+        - "Weekly cadence is slow for evolutionary improvement"
+      key_risk: "Secret test set leakage is invisible, certain, and devastating"
+
+# =============================================================================
+# SPECIFIC GAMING ATTACK ANALYSIS
+# =============================================================================
+
+attack_analysis:
+  sybil_multi_uid:
+    attack: "Register N UIDs with same or similar submissions"
+    radar: |
+      DEFEATED: Pareto deduplication means identical submissions
+      share the same frontier point. penalty_exponent 2.5 makes
+      splitting strictly worse than consolidation.
+    numinous: |
+      MOSTLY DEFEATED: Winner-takes-all means copies split rank,
+      not multiply rewards. But no formal dedup mechanism.
+    gradients: |
+      PARTIALLY DEFEATED: Stake-gated entry limits to 32 slots.
+      But wealthy attackers can secure multiple slots with capital.
+
+  weight_copying:
+    attack: "Validator copies other validators' weight submissions"
+    radar: |
+      LOW RISK: Deterministic training means honest validators
+      naturally agree. Copying is indistinguishable from honest
+      independent computation. commit-reveal optional if needed.
+    numinous: |
+      LOW RISK: Deterministic execution + gateway gives natural
+      validator agreement. Same analysis as RADAR.
+    gradients: |
+      MEDIUM RISK: Different validators may use different test sets.
+      Weight agreement is less natural. commit-reveal more important.
+
+  insider_collusion:
+    attack: "Validator leaks evaluation data to own miners"
+    radar: |
+      DEFEATED: No evaluation data to leak. Ground truth is the
+      training outcome itself. Validator would need to train the
+      architecture AND leak it — but the miner already submitted it.
+    numinous: |
+      DEFEATED: Ground truth is external (event resolution from
+      Polymarket/Azuro). Validators don't control outcomes.
+    gradients: |
+      VULNERABLE: Validators hold secret test sets. Leaking test
+      data to own miners gives perfect evaluation scores.
+      This attack is invisible and economically rational.
+
+  lazy_validator:
+    attack: "Validator skips computation, submits random/copied weights"
+    radar: |
+      DETECTABLE: Deterministic training means honest validators
+      will strongly agree. Random weights are outliers, clipped
+      by Yuma Consensus. Lazy validators lose stake influence.
+    numinous: |
+      DETECTABLE: Same mechanism — deterministic execution means
+      lazy validators produce outlier weights, clipped by consensus.
+    gradients: |
+      HARDER TO DETECT: Different test sets may produce legitimately
+      different rankings. Harder to distinguish lazy from honest-but-different.
+
+  model_copy_with_noise:
+    attack: "Copy best submission, add trivial noise to appear different"
+    radar: |
+      DEFEATED: Assigned parent mechanism means copied architecture
+      IS the parent. Score = improvement over parent = ~0.
+      Noise doesn't help because improvement is measured, not similarity.
+    numinous: |
+      PARTIALLY DEFEATED: Noisy copy produces similar Brier Score.
+      Winner-takes-all means tie goes to original (or random).
+      No positive incentive to copy.
+    gradients: |
+      PARTIALLY DEFEATED: Champion margin means noisy copy must
+      beat original by 5-10%. Mere copying with noise fails.
+      But leaked test set could enable targeted improvement.
+
+  compute_resource_gaming:
+    attack: "Use external compute resources beyond what's allowed"
+    radar: |
+      PREVENTED: Validator runs training on own infrastructure.
+      Miner code executes in validator-controlled container.
+      No external compute can assist during evaluation.
+    numinous: |
+      BOUNDED: Gateway proxy mediates all external calls.
+      $0.02 cost cap per run limits API abuse.
+      150s timeout limits compute time.
+    gradients: |
+      PREVENTED: Validator runs training code in isolated container.
+      Same model as RADAR — validator infrastructure only.
+
+# =============================================================================
+# WHAT RADAR SHOULD LEARN FROM PEERS
+# =============================================================================
+
+lessons_to_adopt:
+  from_numinous:
+    gateway_proxy_pattern:
+      what: "Signing proxy for controlled external API access"
+      why: |
+        If RADAR architectures need external resources during training
+        (unlikely for NAS but possible for data-dependent architectures),
+        Numinous's gateway pattern is the gold standard for controlled access.
+      priority: "LOW - only relevant if external API access needed"
+
+    update_rate_limiting:
+      what: "3-day minimum between code updates"
+      why: |
+        Prevents rapid trial-and-error probing of the scoring system.
+        RADAR's per-epoch submission model may allow too-frequent updates
+        in early network stages. Consider minimum intervals.
+      priority: "MEDIUM - worth considering for early network stability"
+
+    proper_scoring_rule:
+      what: "Brier Score guarantees honest prediction is optimal"
+      why: |
+        RADAR should verify its scoring function has this property.
+        If gaming the scoring function is easier than doing honest work,
+        the mechanism fails regardless of other protections.
+      priority: "HIGH - verify RADAR's scoring is a proper scoring rule"
+
+  from_gradients:
+    tournament_engagement:
+      what: "Knockout bracket structure creates excitement"
+      why: |
+        Evolutionary NAS could adopt tournament-style epochs where
+        architectures compete in brackets, adding engagement layer
+        on top of the Pareto scoring. This is a UX improvement, not
+        a security improvement.
+      priority: "LOW - engagement, not anti-gaming"
+
+    champion_margin:
+      what: "Defender must be beaten by significant margin"
+      why: |
+        RADAR could add minimum improvement thresholds for an
+        architecture to displace its parent. This prevents trivial
+        +epsilon improvements from dominating the frontier.
+      priority: "MEDIUM - prevents gradient-hacking style epsilon attacks"
+
+    open_source_archival:
+      what: "Winning code published for community"
+      why: |
+        RADAR's winning architectures should be archived and published.
+        Creates community learning + rising baseline. Already aligned
+        with Chi's open_source_preference invariant.
+      priority: "HIGH - already fits Chi's design philosophy"
+
+# =============================================================================
+# KNOWN GAPS AND OPEN QUESTIONS
+# =============================================================================
+
+open_questions:
+  radar_specific:
+    agent_meta_layer_gaming:
+      question: |
+        If miners submit "agents that design architectures," what prevents
+        an agent from being optimized to game the scoring function rather
+        than genuinely search for good architectures?
+      proposed_mitigation: |
+        The scoring function evaluates the ARCHITECTURES produced by the agent,
+        not the agent itself. An agent that games scoring still needs to produce
+        architectures that score well on the multi-axis Pareto frontier.
+      risk_level: "MEDIUM"
+
+    compute_cost_sustainability:
+      question: |
+        RADAR requires validators to TRAIN architectures. This is
+        significantly more expensive than Numinous (inference only)
+        or even Gradients (training but only 32 miners per week).
+        How does this scale?
+      proposed_mitigation: |
+        4-stage funnel with ~80% elimination at Stage 1 helps.
+        Also: architectures could be trained at smaller scale for
+        evaluation, with scaling exponent predicting full-scale behavior.
+      risk_level: "HIGH - compute cost is existential for validator participation"
+
+    scaling_exponent_manipulation:
+      question: |
+        Could a miner design an architecture that artificially inflates
+        its scaling exponent gamma by performing poorly at low FLOP counts
+        and normally at high FLOP counts?
+      proposed_mitigation: |
+        Require minimum absolute performance at each checkpoint, not just
+        slope. Add R-squared of the log-log fit as a quality filter.
+        Reject architectures with poor fit (noisy/manipulated curves).
+      risk_level: "MEDIUM - worth adding R-squared filtering"
+
+  ecosystem_comparison:
+    production_validation:
+      question: "RADAR scores highest on paper but has zero mainnet hours. How confident are the theoretical advantages?"
+      answer: |
+        Every anti-gaming mechanism in RADAR has precedent:
+        - Pareto scoring: proven on SN120 (Affine)
+        - Container execution: proven on SN6, SN56, SN26, SN120
+        - Code submission: proven on SN56 (Gradients)
+        - Improvement-over-baseline: proven on SN3 (Templar gradient quality)
+        The novelty is the COMBINATION, not individual components.
+        Deploy on testnet with adversarial red-teaming before mainnet.
+
+# =============================================================================
+# CONNECTIONS TO KNOWLEDGE BASE
+# =============================================================================
+
+knowledge_connections:
+  container_execution.yaml: "Shared pattern across all three subnets"
+  trust.assumptions.yaml: "Gradients violates secret eval set trust model"
+  validator.rules.yaml: "Secret eval sets labeled FORBIDDEN"
+  sybil.realities.yaml: "RADAR's Pareto dedup vs UID pressure"
+  incentive.primitives.yaml: "Scoring formula comparison"
+  example.numinous_sn6.yaml: "Full Numinous mechanism spec"
+  example.gradients_sn56.yaml: "Full Gradients mechanism spec"
+  example.affine_sn120.yaml: "Pareto scoring precedent"
+  adversarial_red_blue.yaml: "Alternative pattern not used by these three"
