@@ -39,12 +39,12 @@ submission_model:
     transparency: "Open source, Docker image is full submission"
 
   numinous:
-    what_submitted: "Forecasting agent code (Python function)"
-    format: "Python code submitted to subnet"
-    execution_by: "Validators run in Docker sandboxes"
-    compute_location: "Validator infrastructure (inference)"
-    update_frequency: "Once per 3 days max"
-    transparency: "MIT licensed, all code public"
+    what_submitted: "Forecasting agent code (agent_main Python function)"
+    format: "Python code uploaded to S3, pulled by validators"
+    execution_by: "Validators run in Docker sandboxes (python:3.11-slim, 768MB RAM, 0.5 CPU)"
+    compute_location: "Validator infrastructure (inference only, no local ML libs)"
+    update_frequency: "Once per 3 days max, activates next day at 00:00 UTC"
+    transparency: "MIT licensed, all code public, execution logs exported"
 
   gradients:
     what_submitted: "Fine-tuning training script (code link)"
@@ -244,15 +244,17 @@ overfitting_resistance:
       - "Parentless epochs break adaptation loops"
 
   numinous:
-    mechanism: "100-event rolling window + diverse real-world events"
+    mechanism: "REMA over ~100 events with power-law decay + diverse real-world events"
     detail: |
       Events span sports, politics, economics, weather, etc.
       Overfitting to one domain hurts performance on others.
-      100-event window means consistent calibration required.
-      Real-world events are inherently unpredictable.
+      REMA with power-law decay (exponent=2) weights recent events heavily.
+      Predictions clipped to [0.01, 0.99] — no extreme-value gaming.
+      Failed agents get 0.5 imputed prediction (0.25 Brier penalty).
     additional:
-      - "Binary prediction format is simple but hard to game"
-      - "Brier Score is a proper scoring rule (calibration-rewarding)"
+      - "Brier Score is a strictly proper scoring rule — honest prediction uniquely optimal"
+      - "No local ML libs (no pytorch/tensorflow) — must use gateway for inference"
+      - "Category leaderboards evolving: prediction markets, geopolitics, sports, macro"
 
   gradients:
     mechanism: "Multiple task types + secret test sets"
@@ -766,12 +768,40 @@ attack_analysis:
       Miner code executes in validator-controlled container.
       No external compute can assist during evaluation.
     numinous: |
-      BOUNDED: Gateway proxy mediates all external calls.
-      $0.02 cost cap per run limits API abuse.
-      150s timeout limits compute time.
+      PARTIALLY BOUNDED: Gateway proxy mediates all external calls.
+      Default $0.01/run on Chutes. BUT linked accounts get $1.00/run
+      on OpenAI — a 100x budget advantage creating pay-to-win dynamics.
+      Network is fully isolated (no external internet except via proxy).
     gradients: |
       PREVENTED: Validator runs training code in isolated container.
       Same model as RADAR — validator infrastructure only.
+
+  strategic_failure:
+    attack: "Intentionally fail on difficult events to get a known default score"
+    radar: |
+      NOT APPLICABLE: Training loss is always measured. No mechanism
+      for strategic failure — architecture either trains or doesn't.
+    numinous: |
+      EXPLOITABLE: Failed agents receive imputed 0.5 prediction (Brier=0.25).
+      This is deterministic and known. On high-uncertainty events where
+      most agents score worse than 0.25, strategic failure is rational.
+    gradients: |
+      PARTIALLY APPLICABLE: Tournament elimination means failure = elimination.
+      No benefit from strategic failure since it guarantees loss.
+
+  api_cost_asymmetry:
+    attack: "Well-funded miners get better results via higher API budgets"
+    radar: |
+      NOT APPLICABLE: Training runs on validator infrastructure.
+      No external API calls during evaluation. Equal compute for all.
+    numinous: |
+      VULNERABLE: Linked accounts get 100x budget on external APIs.
+      $1.00/run on OpenAI vs $0.01/run default on Chutes.
+      More API budget = more inference calls = better reasoning = higher scores.
+      This creates a capital advantage independent of code quality.
+    gradients: |
+      NOT APPLICABLE: Training runs on validator infrastructure.
+      No external API access during evaluation.
 
 # =============================================================================
 # WHAT RADAR SHOULD LEARN FROM PEERS
@@ -802,6 +832,24 @@ lessons_to_adopt:
         If gaming the scoring function is easier than doing honest work,
         the mechanism fails regardless of other protections.
       priority: "HIGH - verify RADAR's scoring is a proper scoring rule"
+
+    avoid_api_cost_asymmetry:
+      what: "Numinous's linked accounts create 100x API budget gap ($0.01 vs $1.00)"
+      why: |
+        RADAR's validator-run training avoids this entirely — equal compute
+        for all miners by design. This is a significant advantage over
+        Numinous and should be preserved. Never introduce external API
+        access during evaluation that could create budget-gated advantages.
+      priority: "HIGH - preserve equal-compute-for-all as invariant"
+
+    deterministic_failure_handling:
+      what: "Numinous imputes 0.5 on failure (known, exploitable)"
+      why: |
+        If RADAR has failure modes (architecture doesn't compile, training
+        diverges), the failure penalty should be WORSE than any honest
+        attempt, not a known fixed value that could be strategically optimal.
+        Consider: failure score = worst honest score * 1.5.
+      priority: "MEDIUM - prevent strategic failure gaming"
 
   from_gradients:
     tournament_engagement:
@@ -895,3 +943,91 @@ knowledge_connections:
   example.gradients_sn56.yaml: "Full Gradients mechanism spec"
   example.affine_sn120.yaml: "Pareto scoring precedent"
   adversarial_red_blue.yaml: "Alternative pattern not used by these three"
+
+# =============================================================================
+# APPENDIX A: NUMINOUS (SN6) TECHNICAL SPECS
+# Source: numinouslabs/numinous GitHub repo code inspection
+# =============================================================================
+
+appendix_numinous:
+  sandbox_specs:
+    base_image: "python:3.11-slim"
+    container_name: "ig-validator-sandbox-image"
+    memory_limit: "768 MB RAM, no swap"
+    cpu_limit: "0.5 cores (50% of one core via cpu_quota/cpu_period)"
+    file_descriptors: 65536
+    network: "Custom internal Docker bridge (ig-validator-sandbox-network), NO external internet"
+    filesystem: "Per-sandbox temp dir mounted read-write to /sandbox; wallet paths read-only to signing proxy"
+    cleanup: "Containers removed after execution; old containers purged on init"
+    entry_point: "python /sandbox/agent_runner.py"
+
+  execution_pipeline:
+    stage_1_metadata_sync: "sync_miners_metadata.py — sync miner info from metagraph"
+    stage_2_event_ingestion: "pull_events.py — fetch binary prediction events from platform API"
+    stage_3_agent_pull: "pull_agents.py — download activated agent code from S3"
+    stage_4_agent_execution: "run_agents.py — spawn Docker sandboxes, max 5 concurrent"
+    stage_5_event_resolution: "resolve_events.py — resolve binary outcome after 3-day window"
+    stage_6_scoring: "scoring.py — compute Brier, apply power-law decay, compute REMA"
+    stage_7_weight_setting: "set_weights.py — normalize, validate, submit to chain"
+    stage_8_data_export: "export_*.py — export runs, logs, predictions, scores for transparency"
+
+  scoring_detail:
+    brier_formula: "(prediction - outcome)^2"
+    prediction_clipping: "[0.01, 0.99] — prevents extreme values from gaming"
+    failure_imputation: "0.5 prediction → 0.25 Brier penalty"
+    null_handling: "Miners with null predictions and no failed run are dropped from event"
+    time_weighting: "weight(i) = 1 - (i / (n_intervals - 1))^exponent, exponent=2"
+    aggregation: "REMA (Recency-Exponential Moving Average) over ~100 events"
+    uptime_penalty_distance: "1/3 constant in codebase"
+
+  signing_proxy:
+    purpose: "Secure proxy for external API access from sandboxes"
+    container: "ig_validator_signing_proxy on port 8888"
+    networks: "Connected to BOTH sandbox network AND bridge network"
+    security: "API keys never exposed to agent code; run_id tracks all requests"
+    env_vars_exposed_to_agents: ["SANDBOX_PROXY_URL", "RUN_ID"]
+
+  api_cost_caps:
+    chutes_default: "$0.01/run"
+    chutes_linked: "$0.10/run"
+    desearch_default: "$0.01/run"
+    desearch_linked: "$0.10/run"
+    openai_linked_only: "$1.00/run"
+    perplexity_linked_only: "$0.10/run"
+    vericore_linked_only: "$0.10/run"
+    openrouter_linked_only: "$0.10/run"
+    note: "Linked accounts require miner to bind external API credentials"
+
+  available_libraries:
+    http: ["requests", "httpx"]
+    numeric: ["numpy", "pandas", "scipy", "statsmodels"]
+    data: ["pydantic", "orjson", "python-dateutil"]
+    ai_frameworks: ["langchain-core", "langchain-openai", "langgraph"]
+    NOT_available: ["pytorch", "tensorflow", "jax"]
+    implication: "Agents MUST use external LLM inference via gateway, no local ML"
+
+  known_gaming_vectors:
+    timestamp_randomness:
+      attack: "Use dynamic timestamps or random seeds to break determinism"
+      status: "Warned against in docs, honesty-dependent (not technically enforced)"
+    cold_model_gambling:
+      attack: "Rely on unavailable Chutes models; 503 errors → 50% failure rate"
+      status: "No automated fallback; miners must verify model availability"
+    strategic_imputation:
+      attack: "Intentionally fail on high-uncertainty events to get 0.25 Brier (better than bad prediction)"
+      status: "Imputation value is deterministic and known; can be gamed"
+    api_cost_asymmetry:
+      attack: "Linked accounts get 100x more API budget ($1.00 vs $0.01)"
+      status: "Creates pay-to-win dynamic for well-funded miners"
+    no_ensemble_prevention:
+      attack: "Same entity registers multiple UIDs with complementary hedging strategies"
+      status: "Wallet-hotkey binding prevents code sharing but not multi-wallet ownership"
+
+  validator_requirements:
+    ram: "32 GB recommended (16 GB minimum)"
+    cpu: "4-core minimum"
+    storage: "100 GB SSD with good IOPS"
+    docker: "Docker Engine 20.10+ and Docker Compose V2"
+    stake: "10,000 TAO minimum on mainnet"
+    validators_active: "~42"
+    daily_emissions: "~287 TAO"
