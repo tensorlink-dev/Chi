@@ -47,12 +47,13 @@ submission_model:
     transparency: "MIT licensed, all code public, execution logs exported"
 
   gradients:
-    what_submitted: "Fine-tuning training script (code link)"
-    format: "Link to code repository"
-    execution_by: "Validators run in isolated containers"
-    compute_location: "Validator infrastructure (training)"
-    update_frequency: "Per tournament (weekly)"
-    transparency: "Winning code open-sourced"
+    what_submitted: "Fine-tuning training script (GitHub repo URL + commit hash)"
+    format: "Docker training scripts at standardized paths (standalone-text-trainer.dockerfile)"
+    execution_by: "CENTRALIZED validator (Rayon Labs) runs on own H100/A100 GPUs"
+    compute_location: "Single validator's GPU infrastructure (Docker --network none)"
+    update_frequency: "Per tournament (weekly, starts Thursdays 14:00 UTC)"
+    transparency: "1st/2nd place code archived to gradients-opensource (229+ repos)"
+    anti_obfuscation: "Binary files (.bin/.pyc/.dll) banned; license files character-for-character verified"
 
   benchmark_verdict:
     leader: "RADAR and Gradients (both submit training code)"
@@ -96,15 +97,19 @@ ground_truth:
       gaming requires sustained calibration, not one-off tricks.
 
   gradients:
-    source: "Performance on SECRET held-out test sets"
-    type: "validator-controlled (dangerous)"
+    source: "Loss on SECRET held-out test sets (text: conversations, image: noise restoration)"
+    type: "CENTRALIZED validator-controlled (single point of trust)"
     delay: "Immediate (after training completes)"
     validator_controls_truth: true
-    leakability: "HIGH - validators know test set answers"
+    leakability: "MEDIUM-HIGH — single centralized validator (Rayon Labs) holds all test data"
     detail: |
-      Validators maintain secret evaluation data. Per Chi knowledge base
+      A SINGLE centralized validator operated by Rayon Labs holds all
+      secret evaluation data. Independent auditor validators can re-verify
+      results within 7 days, but only after the fact. Per Chi knowledge base
       trust.assumptions.yaml: "Any secret held by validators WILL leak."
-      This is the weakest ground truth model of the three.
+      The centralized model makes this less of a distributed leak risk but
+      creates a single point of trust/failure — if Rayon Labs is compromised
+      or acts in self-interest, the entire subnet's integrity fails.
 
   benchmark_verdict:
     leader: "RADAR"
@@ -147,14 +152,16 @@ sybil_resistance:
     effectiveness: "MEDIUM-HIGH - winner-takes-all helps, but no explicit anti-dup"
 
   gradients:
-    primary: "Tournament bracket structure"
+    primary: "Tournament bracket structure + entry fee burning"
     mechanism: |
       32-miner cap per tournament, selected by ALPHA stake.
-      Duplicate entries would compete against each other in brackets.
+      Entry fees (~0.15-0.20 TAO, burned) create economic cost per attempt.
+      Duplicate entries compete against each other in brackets.
       Champion margin (5-10%) means copies can't both win.
+      Exponential reward decay (0.3^(rank-1)) makes only 1st place profitable.
     secondary: "UID pressure (protocol-level)"
-    tertiary: "Stake-based tournament entry"
-    effectiveness: "MEDIUM - stake-gating helps but doesn't prevent wealthy sybils"
+    tertiary: "Stake-based entry + fee burning disincentivizes sybil slots"
+    effectiveness: "MEDIUM - stake-gating + fees help but wealthy sybils can still enter"
 
   benchmark_verdict:
     leader: "RADAR"
@@ -199,15 +206,18 @@ copy_resistance:
     effectiveness: "MEDIUM - copying is easy but not advantageous (ties)"
 
   gradients:
-    mechanism: "Secret test sets + champion margin"
+    mechanism: "Secret test sets + champion margin + evolutionary archive"
     detail: |
-      Miners can't copy the evaluation criteria (held-out test set).
-      Challengers must beat champion by 5-10% margin.
-      Winning code is open-sourced, creating copy-and-improve pressure.
+      Miners can't copy evaluation criteria (held-out test set).
+      Challengers must beat champion by 5-10% margin (progressive: 10% initial,
+      decaying to 3% floor). Champion boost decays -0.33%/day preventing
+      indefinite reign. Winning code open-sourced to 229+ repo archive.
     additional:
       - "Tournament elimination means copies compete against each other"
-      - "Open-sourced winners create rising baseline"
-    effectiveness: "MEDIUM - relies on secret sets (leakable) for copy prevention"
+      - "Exponential reward decay: 0.3^(rank-1) makes only 1st place profitable"
+      - "Open archive creates evolutionary pressure — each generation builds on last"
+      - "Binary file ban + license verification prevents obfuscated submissions"
+    effectiveness: "MEDIUM — relies on secret sets + centralized validator for copy detection"
 
   benchmark_verdict:
     leader: "RADAR"
@@ -454,15 +464,22 @@ validator_collusion:
     residual_risk: "Validator could run own agent with privileged data access"
 
   gradients:
-    trust_model: "Validators control secret test sets (weakest model)"
+    trust_model: "CENTRALIZED single validator (Rayon Labs) controls all evaluation"
     attack_surface: |
-      Validators know the evaluation criteria AND answers.
-      This is exactly the attack pattern described in
-      trust.assumptions.yaml: validator shares test set with own miner.
+      A single entity controls: secret test sets, evaluation infrastructure,
+      tournament scheduling, and weight submission. This is NOT a distributed
+      trust model. The entire subnet's integrity depends on Rayon Labs' honesty.
+      Auditor validators can re-verify within 7 days, but only post-hoc.
     mitigations:
-      - "Multiple validators with different test sets (if implemented)"
-      - "Yuma Consensus for weight agreement"
-    residual_risk: "HIGH - secret test set leakage is an invisible, certain attack"
+      - "Independent auditor validators can spot-check results"
+      - "7-day verification window for auditors"
+      - "Open-source archival of winners provides transparency"
+    residual_risk: |
+      HIGH — centralized validator is a single point of trust.
+      If Rayon Labs runs own miners or favors specific participants,
+      auditors can only detect this after the fact, not prevent it.
+      This is the fundamental tradeoff of centralized operation:
+      consistency and lower barrier vs trust concentration.
 
   benchmark_verdict:
     leader: "RADAR"
@@ -555,14 +572,21 @@ innovation_incentive:
 
   gradients:
     mechanisms:
-      open_source_winners: |
-        Winning training code is published. Creates rising baseline.
-        Future competitors must improve on published methods.
+      evolutionary_archive: |
+        229+ open-source repos at gradients-opensource org.
+        1st and 2nd place archived with naming convention:
+        god-[type]-tourn-[id]-[date]-position-[rank].
+        Creates permanent evolutionary record and rising baseline.
       multiple_task_types: |
-        Four task types reward breadth of innovation.
+        Seven task types (Instruct, DPO, GRPO, Chat, SDXL, Flux, RL)
+        reward breadth across text, image, and environment domains.
       champion_margin: |
-        Must beat champion by 5-10%, forcing meaningful improvement.
-    innovation_pressure: "MEDIUM-HIGH - champion margin forces real improvement"
+        Must beat champion by 5-10% (progressive threshold: 10% initial,
+        decaying to 3% floor). Boost decays -0.33%/day preventing stagnation.
+      boss_round_diversity: |
+        Championship boss round uses 6 tasks across multiple types.
+        Winner by majority rule (4+/6), preventing single-task specialization.
+    innovation_pressure: "HIGH - evolutionary archive + champion decay + multi-task boss round"
 
   benchmark_verdict:
     leader: "RADAR"
@@ -637,8 +661,8 @@ composite_scorecard:
     innovation_incentive:
       radar: "A+"
       numinous: "B"
-      gradients: "B+"
-      notes: "RADAR's scaling exponent + agent meta-layer is unmatched"
+      gradients: "A-"
+      notes: "Gradients' 229-repo evolutionary archive + boss round diversity is strong; RADAR's scaling exponent + agent meta-layer still unmatched"
 
   summary:
     radar:
@@ -673,20 +697,25 @@ composite_scorecard:
       key_risk: "Limited innovation pressure — rewards playing it safe"
 
     gradients:
-      overall: "B"
+      overall: "B+"
       strengths:
-        - "Code submission model (reproducible, transparent)"
-        - "Tournament structure creates clear competitive dynamics"
-        - "Champion margin forces meaningful improvement"
-        - "Open-sourced winners create rising baseline"
-        - "Multiple task types prevent narrow specialization"
+        - "Code submission model with anti-obfuscation (no .bin/.pyc/.dll)"
+        - "Tournament structure with progressive champion decay (-0.33%/day)"
+        - "229+ repo evolutionary archive creates rising baseline"
+        - "7 task types (Instruct, DPO, GRPO, Chat, SDXL, Flux, RL)"
+        - "Boss round uses 6 tasks, majority rule prevents single-task gaming"
+        - "Entry fees burned — economic cost for sybil attempts"
+        - "RestrictedPython sandbox for RL reward functions"
+        - "Docker --network none isolation (no internet during training)"
       weaknesses:
-        - "SECRET TEST SETS violate trust model (will leak)"
+        - "CENTRALIZED VALIDATOR (Rayon Labs) — single point of trust"
+        - "Secret test sets controlled by single entity"
         - "Stake-gated entry creates pay-to-play dynamic"
         - "No Pareto-style sybil resistance"
-        - "Expensive: all 32 miners get full training runs"
-        - "Weekly cadence is slow for evolutionary improvement"
-      key_risk: "Secret test set leakage is invisible, certain, and devastating"
+        - "Auditor verification is post-hoc only (7-day window)"
+        - "Champion entrenchment possible despite decay mechanism"
+        - "Expensive: all 32 miners get full H100 training runs"
+      key_risk: "Centralized validator = centralized trust. Entire subnet depends on Rayon Labs' integrity."
 
 # =============================================================================
 # SPECIFIC GAMING ATTACK ANALYSIS
@@ -729,9 +758,12 @@ attack_analysis:
       DEFEATED: Ground truth is external (event resolution from
       Polymarket/Azuro). Validators don't control outcomes.
     gradients: |
-      VULNERABLE: Validators hold secret test sets. Leaking test
-      data to own miners gives perfect evaluation scores.
-      This attack is invisible and economically rational.
+      STRUCTURALLY VULNERABLE: A SINGLE centralized validator (Rayon Labs)
+      controls ALL secret test sets, ALL evaluation, and ALL weight submission.
+      If this single entity runs own miners or shares test data, there is no
+      real-time prevention mechanism. Auditor validators can only detect
+      anomalies post-hoc within a 7-day window. This is the strongest form
+      of the validator-leak attack: one entity, total information control.
 
   lazy_validator:
     attack: "Validator skips computation, submits random/copied weights"
@@ -743,8 +775,10 @@ attack_analysis:
       DETECTABLE: Same mechanism — deterministic execution means
       lazy validators produce outlier weights, clipped by consensus.
     gradients: |
-      HARDER TO DETECT: Different test sets may produce legitimately
-      different rankings. Harder to distinguish lazy from honest-but-different.
+      NOT APPLICABLE IN TRADITIONAL SENSE: Single centralized validator.
+      The "lazy validator" attack becomes "lazy auditor" — auditors that
+      don't bother to verify the main validator's work. This is actually
+      expected behavior since auditing is optional and low-reward.
 
   model_copy_with_noise:
     attack: "Copy best submission, add trivial noise to appear different"
@@ -861,21 +895,53 @@ lessons_to_adopt:
         a security improvement.
       priority: "LOW - engagement, not anti-gaming"
 
-    champion_margin:
-      what: "Defender must be beaten by significant margin"
+    champion_margin_with_decay:
+      what: "Progressive champion advantage: 10% initial → 3% floor, decays -0.33%/day"
       why: |
         RADAR could add minimum improvement thresholds for an
         architecture to displace its parent. This prevents trivial
         +epsilon improvements from dominating the frontier.
-      priority: "MEDIUM - prevents gradient-hacking style epsilon attacks"
+        The TIME DECAY is key: prevents indefinite stagnation.
+        Consider: improvement threshold that decays with lineage age.
+      priority: "MEDIUM - prevents epsilon attacks while avoiding entrenchment"
 
     open_source_archival:
-      what: "Winning code published for community"
+      what: "229+ repos with naming convention god-[type]-tourn-[id]-[date]-position-[rank]"
       why: |
-        RADAR's winning architectures should be archived and published.
+        RADAR's winning architectures should be archived and published
+        with systematic naming (e.g., radar-vision-epoch-42-rank-1).
         Creates community learning + rising baseline. Already aligned
-        with Chi's open_source_preference invariant.
+        with Chi's open_source_preference invariant. Gradients proves
+        this model works at scale.
       priority: "HIGH - already fits Chi's design philosophy"
+
+    anti_obfuscation_rules:
+      what: "Binary files banned, license verified character-for-character"
+      why: |
+        RADAR should enforce similar code transparency: ban compiled
+        artifacts in Docker images, require readable source code.
+        This prevents hiding malicious or gaming logic in opaque binaries.
+        Gradients' approach is lightweight and effective.
+      priority: "HIGH - simple to implement, significant anti-gaming value"
+
+    avoid_centralized_validator:
+      what: "Gradients' single-validator model creates trust concentration"
+      why: |
+        RADAR MUST NOT replicate Gradients' centralized validator pattern.
+        A single entity controlling evaluation, scheduling, and weight
+        submission is a fundamental trust vulnerability. RADAR's distributed
+        validator model with deterministic training is strictly superior.
+        The auditor pattern is a weak mitigation — post-hoc, not preventive.
+      priority: "CRITICAL - architectural invariant to preserve"
+
+    restricted_execution_for_rl:
+      what: "RestrictedPython wrapper blocks dangerous operations in GRPO reward functions"
+      why: |
+        If RADAR's agent meta-layer allows miners to submit executable
+        reward/evaluation functions, use RestrictedPython or similar
+        sandboxing to block file I/O, network access, system commands,
+        and dangerous builtins (eval, exec, globals, locals).
+      priority: "HIGH if agent meta-layer includes executable code"
 
 # =============================================================================
 # KNOWN GAPS AND OPEN QUESTIONS
@@ -1031,3 +1097,150 @@ appendix_numinous:
     stake: "10,000 TAO minimum on mainnet"
     validators_active: "~42"
     daily_emissions: "~287 TAO"
+
+# =============================================================================
+# APPENDIX B: GRADIENTS (SN56) TECHNICAL SPECS
+# Source: rayonlabs/G.O.D GitHub repo + white paper + web research
+# =============================================================================
+
+appendix_gradients:
+  repos:
+    primary: "https://github.com/rayonlabs/G.O.D"
+    legacy: "https://github.com/backend-developers-ltd/hordization-sn56"
+    archive: "https://github.com/gradients-opensource (229+ repos)"
+    white_paper: "https://github.com/rayonlabs/G.O.D/blob/main/docs/Gradient_White_Paper.pdf"
+
+  developer: "Rayon Labs (also SN19 Nineteen, SN64 Chutes)"
+  commercial_product: "gradients.io — no-code fine-tuning, $100-$500 vs $10K+ on GCP Vertex"
+  paying_users: "~3,000"
+  claimed_performance: "82.8% win rate vs HuggingFace AutoTrain, 100% vs TogetherAI/Databricks/GCP"
+
+  validator_model:
+    type: "CENTRALIZED — single main validator operated by Rayon Labs"
+    auditors: "Independent auditor validators can re-verify within 7-day window"
+    auditor_cost: "Lower than main validator (no expensive GPU needed)"
+    implication: |
+      This is fundamentally different from RADAR and Numinous.
+      A single entity controls all evaluation, scheduling, and scoring.
+      Auditors are post-hoc only — they cannot prevent manipulation.
+
+  container_specs:
+    isolation: "Docker with --network none (zero internet access)"
+    pre_cached_models: "/cache/models/{model.replace('/', '--')}"
+    pre_cached_datasets: "/cache/datasets/"
+    memory_limit: "Up to 135 GB"
+    cpu_limit: "Up to 24 cores (dynamically allocated)"
+    output_path: "/app/checkpoints/{task_id}/{expected_repo_name}"
+    logging: "WandB (offline mode required)"
+
+  gpu_allocation:
+    text_tasks:
+      up_to_4B: "1x H100"
+      4B_to_12B: "2x H100"
+      12B_to_40B: "4x H100"
+      40B_plus: "8x H100"
+      dpo_multiplier: "3x"
+      grpo_multiplier: "2x"
+    image_tasks:
+      all: "1x A100"
+    time_constraints:
+      text: "3-10 hours depending on dataset size"
+      image: "1-2 hours"
+
+  submission_requirements:
+    format: "GitHub repo URL + commit hash"
+    docker_paths:
+      text: "dockerfiles/standalone-text-trainer.dockerfile"
+      image: "dockerfiles/standalone-image-trainer.dockerfile"
+    endpoint: "/training_repo/{task_type}"
+    anti_obfuscation:
+      banned_files: [".bin", ".pyc", ".dll", "compiled binaries"]
+      license_check: "CHARACTER-FOR-CHARACTER match against official G.O.D LICENSE and NOTICE files"
+      code_readability: "All code must be fully readable and not obfuscated"
+
+  tournament_schedule:
+    text: "Thursdays at 14:00 UTC"
+    image: "Thursdays at 14:00 UTC"
+    environment: "Mondays at 14:00 UTC"
+    duration: "4-7 days"
+    gap_between: "72 hours"
+    missed_start: "Tournament does NOT start late"
+
+  tournament_stages:
+    selection:
+      max_miners: 32
+      method: "Top by ALPHA stake in SN56"
+      min_participants_text: 8
+      min_participants_image: 8
+      min_participants_env: 5
+      entry_fees:
+        text: "~0.20 TAO (burned)"
+        image: "~0.15 TAO (burned)"
+        environment: "~0.20 TAO (burned)"
+    group_stage:
+      grouping: "Groups of 6-8"
+      tasks: "1 per type (Instruct/Image/Environment)"
+      advancement: "Top 8 advance to knockout"
+    knockout:
+      format: "Single-elimination head-to-head"
+      task_variation: "Probabilistic by matchup"
+      survivors: "1 challenger"
+    boss_round:
+      tasks: 6
+      mix: "Text + Image combined"
+      win_condition: "Majority rule (4+ out of 6)"
+      champion_margin: "5-10% (progressive)"
+    environment_variant:
+      rounds: "Single group stage only (no knockout)"
+      scoring: "GRPO-based, highest score wins"
+
+  champion_system:
+    initial_threshold: "10%"
+    decay: "Exponential per defense"
+    floor: "3%"
+    boost_formula: "(performance_diff - 0.05) * 2.0"
+    boost_caps:
+      text: "60% max emission"
+      image: "40% max emission"
+    time_decay: "-0.33% per day"
+    30_day_example: "0.30 boost → ~0.201 after 30 days"
+
+  scoring:
+    ranking_decay: "0.3^(rank-1) — Position 1: 1.0, Position 2: 0.3, Position 3: 0.09"
+    base_weights:
+      text: "20%"
+      image: "15%"
+      remainder: "Burned"
+    dual_weight_system: "Champions access boosted pools; non-champions share base pools"
+    max_training_retries: 2
+
+  restricted_python:
+    purpose: "Safe execution of GRPO reward functions"
+    blocked: ["file I/O", "network requests", "os", "subprocess", "eval", "exec", "globals", "locals", "module imports"]
+    allowed: ["sum", "min", "max", "abs", "round", "sorted", "len", "str", "int", "float", "list", "dict", "range", "enumerate", "zip", "map", "filter"]
+
+  known_gaming_vectors:
+    centralized_validator:
+      attack: "Main validator (Rayon Labs) could favor own miners"
+      status: "Auditors mitigate post-hoc; no real-time prevention"
+      severity: "HIGH"
+    champion_entrenchment:
+      attack: "Strong champion with initial advantage could dominate long-term"
+      status: "Progressive decay (10%→3%) + time decay (-0.33%/day) mitigates partially"
+      severity: "MEDIUM"
+    stake_concentration:
+      attack: "Wealthy participants secure disproportionate tournament slots"
+      status: "Empirical research shows <2% of wallets command 51% majority across BT subnets"
+      severity: "MEDIUM-HIGH"
+    subtle_obfuscation:
+      attack: "Complex but readable Python could still obscure gaming intent"
+      status: "Binary ban helps but doesn't prevent all obfuscation"
+      severity: "LOW-MEDIUM"
+    code_copy_from_archive:
+      attack: "Submit minimally modified version of champion's archived code"
+      status: "Champion margin partially addresses; but winning-by-epsilon is possible"
+      severity: "MEDIUM"
+    dataset_fingerprinting:
+      attack: "Infer held-out test data characteristics from training data patterns"
+      status: "Acknowledged risk; mitigated by test data rotation"
+      severity: "MEDIUM"
