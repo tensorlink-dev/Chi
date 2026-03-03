@@ -112,18 +112,19 @@ ground_truth:
       or acts in self-interest, the entire subnet's integrity fails.
 
   benchmark_verdict:
-    leader: "RADAR"
+    leader: "Numinous (proven) / RADAR (theoretical)"
     rationale: |
-      RADAR's ground truth (training loss improvement) is EMERGENT from
-      computation, not from a secret dataset. Validators cannot leak it
-      because there's nothing to leak - the truth IS the training outcome.
-      Numinous is also strong (external oracle). Gradients is weakest
-      due to reliance on secret eval sets that Chi's own knowledge base
-      explicitly labels FORBIDDEN (validator.rules.yaml line 52).
+      Numinous's external oracle (Polymarket/Azuro) is PROVEN robust on mainnet.
+      RADAR's emergent ground truth is theoretically elegant but UNPROVEN.
+      Gradients' centralized validator holding secrets is simpler to operate
+      but creates trust concentration. All three approaches are valid tradeoffs:
+      - Numinous: strongest proven model (external oracle)
+      - RADAR: strongest theoretical model (emergent from compute)
+      - Gradients: simplest operational model (centralized, auditable)
     risk_matrix:
-      radar: "Minimal - deterministic, emergent from compute"
-      numinous: "Low - external oracle, post-deadline"
-      gradients: "High - secret sets will leak on valuable subnets"
+      radar: "UNKNOWN — theoretically minimal, but zero adversarial testing"
+      numinous: "Low — external oracle, post-deadline, proven"
+      gradients: "Medium — centralized but auditable, real tradeoff not just weakness"
 
 # =============================================================================
 # DIMENSION 3: SYBIL RESISTANCE
@@ -164,15 +165,13 @@ sybil_resistance:
     effectiveness: "MEDIUM - stake-gating + fees help but wealthy sybils can still enter"
 
   benchmark_verdict:
-    leader: "RADAR"
+    leader: "RADAR (theoretical) — unproven against real sybil attackers"
     rationale: |
-      RADAR's Pareto deduplication is mathematically rigorous:
-      identical submissions cannot dominate each other, so copies
-      are provably worthless. Combined with the penalty exponent 2.5
-      in softmax weight computation, splitting across UIDs is strictly
-      worse than consolidating on one. Numinous achieves similar
-      via winner-takes-all but lacks formal deduplication. Gradients
-      relies on stake-gating which is bypass-able with capital.
+      RADAR's Pareto deduplication is mathematically elegant but
+      has never been tested against real adversaries with capital.
+      Numinous's winner-takes-all is simpler and PROVEN on mainnet.
+      Gradients' stake-gating + fee burning creates real economic cost.
+      Mathematical rigor means little without production validation.
 
 # =============================================================================
 # DIMENSION 4: COPY ATTACK RESISTANCE
@@ -220,15 +219,13 @@ copy_resistance:
     effectiveness: "MEDIUM — relies on secret sets + centralized validator for copy detection"
 
   benchmark_verdict:
-    leader: "RADAR"
+    leader: "Each addresses copying differently — all have merit"
     rationale: |
-      RADAR's parent-assignment system is uniquely powerful: the validator
-      controls WHICH architecture is the parent for each miner, and scoring
-      measures delta over that parent. Copying the leader means being
-      assigned the leader as your parent, yielding zero improvement.
-      This is a structural guarantee, not a statistical one.
-      Numinous's approach (copying ties but doesn't help) is sound but passive.
-      Gradients' reliance on secret test sets for copy prevention is fragile.
+      RADAR's parent-assignment is theoretically elegant but unproven.
+      Numinous's approach (copying ties, doesn't help) is simple and proven.
+      Gradients' champion margin + 229-repo evolutionary archive creates
+      REAL copy-and-improve pressure that demonstrably raises the baseline.
+      Gradients has the most EVIDENCE of copy resistance working in practice.
 
 # =============================================================================
 # DIMENSION 5: OVERFITTING RESISTANCE
@@ -277,15 +274,13 @@ overfitting_resistance:
       - "Boss round uses multiple evaluation tasks"
 
   benchmark_verdict:
-    leader: "RADAR (with Numinous close second)"
+    leader: "Numinous (proven) — real-world event diversity is demonstrably hard to game"
     rationale: |
-      RADAR's scaling exponent axis is uniquely anti-gaming. It measures
-      a fundamental property of the architecture (how well it scales with
-      compute) that cannot be faked without genuine neural architecture
-      innovation. Combined with multi-axis Pareto, it forces broad
-      competence. Numinous's diverse real-world events are similarly
-      hard to game. Gradients' multiple task types help but rely
-      on secret data for the actual measurement.
+      Numinous's diverse real-world events are PROVEN hard to game on mainnet.
+      RADAR's scaling exponent is theoretically elegant but untested — could
+      have manipulation vectors (e.g., artificial low-FLOP underperformance).
+      Gradients' 7 task types + boss round majority rule is also proven.
+      Theoretical elegance aside, Numinous has the strongest evidence.
 
 # =============================================================================
 # DIMENSION 6: VALIDATION PIPELINE DEPTH
@@ -368,14 +363,13 @@ pipeline_depth:
       Tournament structure adds rounds but not filtering efficiency.
 
   benchmark_verdict:
-    leader: "RADAR"
+    leader: "Numinous (lightest footprint) — RADAR (deepest funnel, but heaviest compute)"
     rationale: |
-      RADAR has the deepest and most cost-efficient funnel: 4 stages
-      with aggressive early elimination at Stage 1 (proxy evaluation).
-      This means ~80% of compute is avoided on bad submissions.
-      Numinous is lightweight per-event but doesn't eliminate.
-      Gradients runs all 32 miners through full training before
-      any elimination — the most compute-expensive approach.
+      Numinous is inference-only per event — lightest validator burden.
+      RADAR's 4-stage funnel is theoretically efficient (~80% early elimination)
+      but still requires TRAINING architectures — the heaviest compute of all three.
+      Gradients runs all 32 miners through full H100 training but only weekly.
+      Validator compute cost is RADAR's existential risk, not its strength.
 
 # =============================================================================
 # DIMENSION 7: TEMPORAL GAMING RESISTANCE
@@ -482,13 +476,14 @@ validator_collusion:
       consistency and lower barrier vs trust concentration.
 
   benchmark_verdict:
-    leader: "RADAR"
+    leader: "Numinous (proven) / RADAR (theoretical)"
     rationale: |
-      RADAR's deterministic training with no secret data is the strongest
-      model. Validators have nothing to leak because ground truth emerges
-      from computation. Numinous is nearly as strong due to external oracle
-      ground truth. Gradients is structurally vulnerable — validators hold
-      the answers and can share them with colluding miners undetectably.
+      Numinous's external oracle means validators genuinely have nothing
+      to leak — this is PROVEN on mainnet. RADAR's emergent ground truth
+      is theoretically as strong but UNPROVEN. Gradients' centralized
+      validator is a conscious tradeoff: simpler operations, faster iteration,
+      at the cost of trust concentration. The auditor system provides some
+      accountability. Each model fits different operational contexts.
 
 # =============================================================================
 # DIMENSION 9: ECONOMIC GAMING RESISTANCE
@@ -526,14 +521,15 @@ economic_gaming:
       This creates a pay-to-play dynamic absent in RADAR and Numinous.
 
   benchmark_verdict:
-    leader: "RADAR"
+    leader: "All three address economic gaming differently"
     rationale: |
-      RADAR's penalty exponent 2.5 is a clean mathematical solution:
-      it makes UID splitting strictly worse than consolidation.
-      Combined with Pareto frontier (quality-only, stake-blind),
-      economic gaming has minimal attack surface. Numinous is also
-      strong (quality-only scoring). Gradients' stake-gated tournament
-      entry introduces capital advantage that undermines meritocracy.
+      RADAR's penalty exponent 2.5 is theoretically clean but unproven.
+      Numinous's quality-only Brier scoring is proven meritocratic, but
+      API cost asymmetry ($0.01 vs $1.00) creates real capital advantage.
+      Gradients' fee burning + stake gating is a barrier, but the
+      exponential reward decay (0.3^rank) means only 1st place is really
+      profitable — effectively meritocratic at the top. No system is
+      perfectly capital-neutral.
 
 # =============================================================================
 # DIMENSION 10: NOVELTY / INNOVATION INCENTIVE
@@ -589,133 +585,182 @@ innovation_incentive:
     innovation_pressure: "HIGH - evolutionary archive + champion decay + multi-task boss round"
 
   benchmark_verdict:
-    leader: "RADAR"
+    leader: "Gradients (proven) — 229 repos of demonstrated evolutionary innovation"
     rationale: |
-      RADAR has the strongest innovation forcing function. The scaling
-      exponent axis specifically rewards FUNDAMENTAL architectural
-      innovation (not incremental parameter tuning). The improvement-over-
-      parent mechanism makes copying zero-value. The agent meta-layer
-      opens an entirely new innovation dimension. No other subnet
-      has this depth of innovation incentive.
+      Gradients has the strongest EVIDENCE of innovation incentive working:
+      229+ repos of archived winning code, progressive champion decay forcing
+      improvement, and 82.8% win rate over HuggingFace AutoTrain.
+      RADAR's scaling exponent + agent meta-layer is theoretically deeper
+      but has produced zero innovations so far. Numinous rewards calibration
+      more than novelty. In innovation incentive, production evidence matters
+      more than theoretical elegance.
 
 # =============================================================================
 # COMPOSITE SCORECARD
 # =============================================================================
 
 composite_scorecard:
+  bias_warning: |
+    IMPORTANT: RADAR is in design phase with zero mainnet hours.
+    Numinous and Gradients are battle-tested production systems.
+    Theoretical grades for RADAR are ASPIRATIONAL, not proven.
+    A theoretical A+ that hasn't survived adversarial reality may
+    be worth less than a battle-tested B+. Read with this in mind.
+
+    Two additional dimensions are included below that specifically
+    address where RADAR is WEAKEST relative to peers.
+
   dimensions:
     submission_model:
       radar: "A"
       numinous: "B+"
-      gradients: "A-"
-      notes: "RADAR and Gradients both submit training code; Numinous is inference-only"
+      gradients: "A"
+      notes: "RADAR and Gradients both submit training code; Gradients has proven this works at scale with 3K+ users"
 
     ground_truth:
-      radar: "A+"
-      numinous: "A"
-      gradients: "C"
-      notes: "Gradients' secret test sets violate Chi's own trust model"
+      radar: "A (theoretical)"
+      numinous: "A (proven)"
+      gradients: "B-"
+      notes: "RADAR's emergent ground truth is elegant but unproven. Gradients' centralized validator holding secrets is weaker than distributed but simpler to operate."
 
     sybil_resistance:
-      radar: "A+"
+      radar: "A (theoretical)"
       numinous: "B+"
       gradients: "B"
-      notes: "RADAR's Pareto + penalty exponent is mathematically rigorous"
+      notes: "RADAR's Pareto + penalty exponent is mathematically sound but untested against real adversaries"
 
     copy_resistance:
-      radar: "A+"
+      radar: "A (theoretical)"
       numinous: "B"
-      gradients: "B-"
-      notes: "RADAR's parent-assignment makes copying provably zero-value"
+      gradients: "B"
+      notes: "RADAR's parent-assignment is elegant; Gradients' champion margin + archive creates real evolutionary pressure"
 
     overfitting_resistance:
-      radar: "A+"
-      numinous: "A"
-      gradients: "B"
-      notes: "Scaling exponent gamma is uniquely hard to game"
+      radar: "A (theoretical)"
+      numinous: "A (proven)"
+      gradients: "B+"
+      notes: "Numinous has proven this with real-world event diversity. Gradients' 7 task types + boss round is meaningful."
 
     pipeline_depth:
-      radar: "A+"
-      numinous: "B"
-      gradients: "B-"
-      notes: "RADAR's 4-stage funnel is most compute-efficient"
+      radar: "A (theoretical)"
+      numinous: "B+"
+      gradients: "B"
+      notes: "RADAR's 4-stage funnel is theoretically efficient but unproven at scale"
 
     temporal_gaming:
-      radar: "A"
-      numinous: "A"
+      radar: "A (theoretical)"
+      numinous: "A (proven)"
       gradients: "B+"
-      notes: "RADAR and Numinous address different temporal vectors well"
+      notes: "Numinous has proven pre-registration + rate limiting works in production"
 
     validator_collusion:
-      radar: "A+"
-      numinous: "A"
-      gradients: "C-"
-      notes: "Gradients' validator-held secrets are structurally vulnerable"
+      radar: "A (theoretical)"
+      numinous: "A (proven)"
+      gradients: "C+"
+      notes: "Gradients' centralized model is a real tradeoff, not just a weakness — it enables consistent evaluation"
 
     economic_gaming:
-      radar: "A+"
-      numinous: "A"
-      gradients: "B-"
-      notes: "Gradients' stake-gated entry creates pay-to-play dynamic"
+      radar: "A (theoretical)"
+      numinous: "B+"
+      gradients: "B"
+      notes: "Numinous has API cost asymmetry ($0.01 vs $1.00). Gradients' fee burning is a real sybil deterrent."
 
     innovation_incentive:
-      radar: "A+"
+      radar: "A (theoretical)"
       numinous: "B"
       gradients: "A-"
-      notes: "Gradients' 229-repo evolutionary archive + boss round diversity is strong; RADAR's scaling exponent + agent meta-layer still unmatched"
+      notes: "Gradients' 229-repo archive + champion decay is PROVEN to drive innovation. RADAR's scaling exponent is theoretically stronger but untested."
+
+    production_readiness:
+      radar: "D"
+      numinous: "A"
+      gradients: "A"
+      notes: "RADAR has zero mainnet hours, zero miners, zero adversarial testing. Peers are live and battle-tested."
+
+    operational_simplicity:
+      radar: "C"
+      numinous: "B+"
+      gradients: "A-"
+      notes: "RADAR's 4-stage funnel + multi-axis Pareto + evolutionary lineage is the most complex design. Complexity is risk."
 
   summary:
     radar:
-      overall: "A+"
+      overall: "A (theoretical) / C (production-proven)"
       strengths:
-        - "Deepest anti-gaming stack in the ecosystem"
-        - "Ground truth emerges from computation (unleakable)"
-        - "Pareto + penalty exponent = mathematically rigorous sybil resistance"
+        - "Deepest anti-gaming stack in design (layered defenses)"
+        - "Ground truth emerges from computation (unleakable in theory)"
+        - "Pareto + penalty exponent is mathematically rigorous"
         - "Parent-assignment makes copying provably zero-value"
         - "Scaling exponent rewards fundamental innovation"
         - "4-stage funnel is most compute-efficient pipeline"
+        - "Distributed validation (no single point of trust)"
       weaknesses:
-        - "Untested in production (still in design phase)"
-        - "Complex design may have undiscovered attack surfaces"
-        - "Heavy validator compute burden (training architectures)"
-        - "Agent meta-layer adds complexity and potential gaming vectors"
-      key_risk: "Theoretical strength, unproven in adversarial reality"
+        - "ZERO production hours — all grades are theoretical"
+        - "Most complex design of the three — complexity breeds bugs"
+        - "Heavy validator compute burden (must train architectures)"
+        - "Scaling exponent could have undiscovered manipulation vectors"
+        - "Agent meta-layer adds attack surface that doesn't exist in peers"
+        - "No paying users, no evolutionary archive, no proven product-market fit"
+        - "Proper scoring rule property of multi-axis Pareto is unverified"
+      key_risk: |
+        The biggest risk is hubris. A theoretically perfect design
+        that hasn't survived contact with real adversaries is worth
+        less than a simpler design with 3,000 users and 229 repos
+        of proven evolutionary output. Ship to testnet with adversarial
+        red-teaming BEFORE claiming any of these grades are real.
 
     numinous:
       overall: "A-"
       strengths:
-        - "External oracle ground truth (Polymarket/Azuro) is robust"
-        - "Brier Score is proper scoring rule — honest prediction is optimal"
-        - "Gateway proxy ensures deterministic, consistent execution"
-        - "Rate limiting prevents rapid adaptation gaming"
-        - "Battle-tested on mainnet"
+        - "PROVEN on mainnet with ~42 active validators"
+        - "External oracle ground truth (Polymarket/Azuro) — battle-tested"
+        - "Brier Score is a PROVEN proper scoring rule — honest prediction uniquely optimal"
+        - "Gateway proxy ensures deterministic, consistent execution — proven"
+        - "Rate limiting prevents rapid adaptation gaming — proven"
+        - "Lightweight validator requirements (inference-only, no training)"
+        - "8-stage pipeline is well-structured and transparent (all data exported)"
+        - "Simple, focused design — forecasting agents only. Simplicity is strength."
       weaknesses:
         - "No explicit sybil deduplication mechanism"
-        - "No innovation forcing function (rewards calibration, not novelty)"
-        - "Winner-takes-all creates high variance"
-        - "Forecasting domain is narrower than NAS"
-      key_risk: "Limited innovation pressure — rewards playing it safe"
+        - "API cost asymmetry ($0.01 vs $1.00) creates capital advantage"
+        - "Strategic failure imputation (0.5) is exploitable"
+        - "Winner-takes-all creates high variance for miners near frontier"
+      key_risk: "API cost asymmetry could evolve into pay-to-win if linked budgets keep rising"
+      where_numinous_beats_radar:
+        - "Proven proper scoring rule vs RADAR's unverified multi-axis Pareto"
+        - "Lightweight validators (inference) vs RADAR's heavy validators (training)"
+        - "Simple, focused design vs RADAR's complex multi-layer architecture"
+        - "Battle-tested on mainnet vs RADAR's zero production hours"
 
     gradients:
       overall: "B+"
       strengths:
+        - "PROVEN with 3,000+ paying users and real product-market fit"
+        - "229+ repo evolutionary archive — largest open-source training code library in BT"
         - "Code submission model with anti-obfuscation (no .bin/.pyc/.dll)"
         - "Tournament structure with progressive champion decay (-0.33%/day)"
-        - "229+ repo evolutionary archive creates rising baseline"
         - "7 task types (Instruct, DPO, GRPO, Chat, SDXL, Flux, RL)"
         - "Boss round uses 6 tasks, majority rule prevents single-task gaming"
         - "Entry fees burned — economic cost for sybil attempts"
         - "RestrictedPython sandbox for RL reward functions"
         - "Docker --network none isolation (no internet during training)"
+        - "82.8% win rate vs HuggingFace AutoTrain in controlled experiments"
+        - "Centralized validator enables consistency and lower barrier to entry"
       weaknesses:
-        - "CENTRALIZED VALIDATOR (Rayon Labs) — single point of trust"
+        - "Centralized validator (Rayon Labs) — single point of trust"
         - "Secret test sets controlled by single entity"
         - "Stake-gated entry creates pay-to-play dynamic"
         - "No Pareto-style sybil resistance"
         - "Auditor verification is post-hoc only (7-day window)"
         - "Champion entrenchment possible despite decay mechanism"
-        - "Expensive: all 32 miners get full H100 training runs"
-      key_risk: "Centralized validator = centralized trust. Entire subnet depends on Rayon Labs' integrity."
+      key_risk: "Centralized validator is a trust tradeoff, not just a weakness. It enables operational simplicity but concentrates power."
+      where_gradients_beats_radar:
+        - "3,000+ users and real revenue vs RADAR's zero users"
+        - "229 archived repos of PROVEN winning code vs RADAR's zero"
+        - "Operational simplicity vs RADAR's most complex design"
+        - "Anti-obfuscation rules (binary ban) are simple and effective"
+        - "Champion decay mechanism is battle-tested and calibrated"
+        - "RestrictedPython for safe code execution is a proven pattern"
 
 # =============================================================================
 # SPECIFIC GAMING ATTACK ANALYSIS
