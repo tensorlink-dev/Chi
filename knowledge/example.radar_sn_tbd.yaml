@@ -1,0 +1,448 @@
+# Example: RADAR (Reasoned Architecture Design & Automated Research)
+# Miners submit agent software that autonomously designs neural architectures
+# Pattern: container_execution with agent software submission + multi-scale training funnel
+
+metadata:
+  name: radar
+  also_known_as: "RADAR (Reasoned Architecture Design & Automated Research)"
+  repo: "https://github.com/TensorLink-AI/agentic-nas"
+  developer: "TensorLink"
+  category: architecture_search
+  patterns_used:
+    - container_execution  # miners run LLM agents in containers, submit model code
+  integrations:
+    - basilica              # GPU pods for proxy eval + training
+    - chutes                # LLM inference for agents
+    - desearch              # Research context retrieval
+    - hippius               # Decentralised storage for model artifacts
+  current_task: "time_series_foundation"
+
+# ===========================================================================
+# WHAT IS BEING MEASURED
+# ===========================================================================
+
+measurement:
+  one_sentence: "How reliably a miner's agent software designs neural architectures that outscale the current baseline"
+  commodity: software  # miners submit agent software that designs model architectures
+
+  detail: |
+    Miners submit LLM-backed agent software that autonomously designs neural
+    architectures. Each epoch: validator sends baseline as Challenge, agents
+    design code to beat it, 4-phase funnel (generation, proxy filter,
+    multi-scale training, 4-axis Pareto scoring), weights set.
+    Agents do NOT have to derive from the baseline — novel designs welcome.
+
+  key_insight: "Score the AGENT, not the architecture. Rewards consistent design capability over one-off luck."
+
+  mission: "Advance state-of-the-art neural architectures through decentralized agent competition"
+
+# ===========================================================================
+# MECHANISM OVERVIEW
+# ===========================================================================
+
+mechanism:
+  summary: |
+    Epoch loop: validator selects baseline from DB → constructs Challenge →
+    spins up miner agent containers via Basilica → agents design architectures →
+    proxy filter → multi-scale training (3 short + 1 long) on validator's
+    trusted GPU → 4-axis Pareto scoring → EMA → weight setting.
+
+  lifecycle:
+    1_code_submission: "Miner commits Docker image (agent software) to chain"
+    2_container_execution: "Validator spins up miner containers, sends Challenge with baseline"
+    3_filtering: "Zero-cost proxy screening + constraint checks"
+    4_training: "Multi-scale funnel: 3 short-train sizes (fixed steps) + 1 long-train size (fixed wall-clock)"
+    5_scoring: "4-axis margin-based Pareto + bucket scoring, EMA, weight setting"
+
+  flow:
+    miner:
+      1_develop: "Develop agent software offline (LLM-backed architecture design agent)"
+      2_commit: "Commit Docker image to chain"
+      3_receive_challenge: "Agent receives Challenge (baseline code, constraints, task spec, context)"
+      4_design: "Agent autonomously designs an architecture to beat the baseline"
+      5_submit: "Agent returns MinerSubmission (full source code + motivation)"
+
+    validator:
+      1_select_baseline: "Use the current best model from DB as the scoring baseline"
+      2_dispatch_challenge: "Spin up miner agent containers via Basilica, send Challenge"
+      3_collect_submissions: "Gather agent-produced architecture code"
+      4_proxy_eval: "Batch AZNAS proxy evaluation on Basilica GPU pod"
+      5_short_train: "3 log-uniform sizes [100K,50M], fixed steps — measures α and Peak E"
+      6_long_train: "1 log-uniform size [50M,125M], fixed wall-clock — measures Best CRPS and Best MASE"
+      7_score: "4-axis margin-based Pareto, 3-bucket allocation, EMA, set weights"
+
+  key_distinction: "Beat the benchmark, don't mutate the code — baseline is scoring target + contextual inspiration, not a mandatory fork point"
+
+# ===========================================================================
+# TASK SYSTEM
+# ===========================================================================
+
+task_system:
+  design: |
+    "Thin Task, Fat Core" architecture. Core infrastructure (trainer, evaluator,
+    multi-scale training, scaling law fitting, Pareto mechanics) is task-agnostic.
+    New tasks replace only axes 3 and 4 (~5 files).
+
+  active_task: "time_series_foundation"
+
+  time_series_foundation:
+    model_contract: "TimeSeriesFoundationModel (subclass of BaseTSFM)"
+    metrics: "MASE (primary), CRPS (secondary)"
+    output_format: '{"quantiles": [B, H, Q], "quantile_levels": [Q]}'
+    constraints:
+      max_params: 125_000_000
+      max_inference_latency_ms: 50
+
+# ===========================================================================
+# AGENT INTERFACE
+# ===========================================================================
+
+agent_interface:
+  function_signature: |
+    def handle_challenge(challenge: dict) -> dict:
+        """
+        Args: task_name, challenge_type, constraints, parent_code,
+              parent_metrics, context (top-K history), task_definition,
+              scaffold_code, flop_budget, epoch
+        Returns: model_code (REQUIRED), motivation, name, config
+        """
+
+  http_server:
+    endpoint: "POST /challenge"
+    health: "GET / (HEAD for readiness)"
+    port: 8080
+
+  code_constraints:
+    model_class: "Must subclass task-specific base"
+    factory: "Must define module-level instantiate_model(config=None)"
+    output: "Task-specific format"
+
+# ===========================================================================
+# SANDBOX EXECUTION
+# ===========================================================================
+
+sandbox:
+  technology: docker_containers
+  isolation: full
+
+  miner_pod:
+    provider: "Basilica (Affinetes container orchestration)"
+    resources: "CPU-only (agents run LLM calls, not training)"
+    timeout: "30 minutes"
+    max_concurrent: 8
+    executor: "VALIDATOR runs the miner's container"
+
+# ===========================================================================
+# PHASE 2: FILTERING (ZERO-COST PROXY SCREENING)
+# ===========================================================================
+
+filtering:
+  method: "AZ-NAS inspired signal-aware zero-cost proxies"
+  proxies:
+    - effective_rank
+    - deep_collapse_ratio
+    - saliency_per_param
+    - sensitivity_log_norm
+    - grad_coherence
+    - state_velocity
+    - local_contrast
+  ranking: "Borda count (rank-sum) across all proxy dimensions"
+  top_k: 16
+  constraints:
+    max_params: "125M trainable parameters"
+    max_inference_latency_ms: "50ms per forward pass"
+
+# ===========================================================================
+# PHASE 3: TRAINING (MULTI-SCALE FUNNEL)
+# ===========================================================================
+
+training:
+  overview: |
+    Every candidate trains at 4 parameter scales sampled log-uniformly each
+    epoch. Parent baseline trains at all four sizes under identical conditions.
+
+  size_sampling:
+    method: "Log-uniform — equal probability per order of magnitude"
+    short_train: "3 sizes from [100K, 50M]"
+    long_train: "1 size from [50M, 125M]"
+    anti_gaming: "Sizes resampled fresh every epoch"
+
+  phase_3a_short:
+    budget: "Fixed steps (not wall-clock)"
+    purpose: "Pure architectural comparison — measures α and Peak E"
+    survivors: 19
+
+  phase_3b_long:
+    budget: "Fixed wall-clock (4 hours)"
+    purpose: "Practical deployment value — measures Best CRPS and Best MASE"
+    finalists: 3
+
+  checkpoint_schedule:
+    positions: "[2%, 4%, 6%, 8%, 10%, 15%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 100%]"
+    rationale: "Dense early sampling captures curvature where γ is most identifiable"
+
+  execution:
+    primary: "CUDA streams on single Basilica GPU pod"
+    note: "Validator NEVER runs GPU workloads locally"
+
+# ===========================================================================
+# PHASE 4: SCORING & WEIGHT SETTING
+# ===========================================================================
+
+scoring:
+  overview: |
+    4-axis margin-based Pareto. Three reward buckets (5% / 20% / 75%).
+    Beat parent on >= 1 axis beyond margin to unlock 75% above-parent pool.
+
+  scoring_axes:
+    peak_E:
+      definition: "Irreducible loss floor — lowest confidence-weighted E across all sizes"
+      why: "Requires fundamentally different inductive bias to improve"
+    alpha:
+      definition: "Compute-scaling exponent — how loss scales across parameter sizes"
+      why: "Property of architecture family, not tunable per size"
+    best_crps:
+      definition: "Minimum CRPS across all sizes (task-specific, replaced for new tasks)"
+    best_mase:
+      definition: "Minimum MASE across all sizes (task-specific, replaced for new tasks)"
+
+  fitting:
+    formula: "L(F) = E + C / F^γ  (F = cumulative FLOPs)"
+    E_bounds: "[0, min(observed losses)] — mandatory per Barkeshli et al."
+    validation: "Every power-law fit validated against exponential alternative"
+    confidence: "Continuous: max(0, 1 - MSE_ratio), not binary gate"
+
+  pareto_dominance:
+    method: "Margin-based 4-axis pairwise"
+    margins: { peak_E: 0.02, alpha: 0.05, crps: 0.005, mase: 0.005 }
+    why: "Absorbs inter-validator CUDA non-determinism variance"
+
+  reward_buckets:
+    short_train: { share: "5%", eligibility: "All candidates completing short training" }
+    below_parent: { share: "20%", eligibility: "Failed above-parent gate on all axes" }
+    above_parent: { share: "75%", eligibility: "Beat parent on at least 1 axis beyond margin" }
+    sub_pools: "Peak E 25%, α 25%, CRPS 15%, MASE 15%, Pareto win-rate 20%"
+
+  ema:
+    alpha: 0.1
+    formula: "ema[uid] = alpha * epoch_score + (1 - alpha) * ema[uid]"
+
+# ===========================================================================
+# GROUND TRUTH SOURCE
+# ===========================================================================
+
+ground_truth:
+  source: validation_loss
+  note: "ALL checkpoints record VALIDATION loss — memorisation does not reduce E"
+  providers:
+    - huggingface_datasets
+    - cloudflare_r2
+  verification: "Train candidate code at multiple sizes, measure loss on held-out validation data"
+
+# ===========================================================================
+# SCALING LAWS THESIS
+# ===========================================================================
+
+scaling_laws:
+  core_bet: |
+    Peak E (irreducible loss floor) and α (compute-scaling exponent),
+    extracted from multi-scale training per Barkeshli et al. (arXiv:2601.10684),
+    are practical architectural fingerprints under controlled conditions.
+
+  key_methodology:
+    - "E must be a free parameter bounded [0, min(observed losses)] — never fixed at 0"
+    - "Every power-law fit validated against exponential alternative"
+    - "Non-embedding parameter counts for cross-family comparison"
+    - "15 dense-early checkpoints (vs 7) reduce exponent variance by 2-3×"
+    - "FLOP-normalised x-axis for MoE and compute-asymmetric architectures"
+
+  live_use: "Peak E and α are Pareto axes — 50% of total allocation combined"
+  the_long_game: |
+    The DB accumulates (F, L) points at log-uniformly distributed sizes
+    over many epochs, enabling population-level analysis and compute-optimal
+    frontier extraction.
+
+# ===========================================================================
+# ANTI-GAMING PROPERTIES
+# ===========================================================================
+
+anti_gaming:
+  agent_software_submission: "Agents run every epoch — rewards consistent capability, not one-off luck"
+  multi_scale_training: "4 sizes sampled log-uniformly each epoch — cannot optimise for specific targets"
+  fixed_step_scaling: "Short-train uses fixed steps — compute-efficient architectures do not gain extra data"
+  peak_e_novelty: "Same architecture family converges to same E — requires new inductive bias"
+  alpha_novelty: "α is a property of the architecture family across scales — not tunable per size"
+  validation_loss_only: "Memorisation does not reduce E"
+  margin_based_pareto: "Absorbs inter-validator fitting variance"
+  proxy_borda_ranking: "Rank-sum across 7 proxy dimensions — no single proxy gameable"
+  parentless_epochs: "15% of epochs skip baseline — tests raw agent capability"
+  validator_assigned_baselines: "Validator picks from top-K pool; agents can't choose easy targets"
+  validator_controlled_containers: "Full control over environment, timing, resource limits"
+
+# ===========================================================================
+# INTEGRATIONS
+# ===========================================================================
+
+integrations:
+  basilica:
+    purpose: "GPU pods for miner agent execution, proxy eval, and training"
+    pods: { miner_agents: "CPU-only", proxy_eval: "Single GPU", training: "GPU with CUDA streams" }
+
+  chutes:
+    purpose: "LLM inference for validator-side agents (Analyzer, Summarizer, Debugger)"
+
+  desearch:
+    purpose: "Research paper context for agent reasoning"
+
+  hippius:
+    purpose: "Decentralised storage for model artifacts and checkpoints"
+
+# ===========================================================================
+# ON-CHAIN MECHANICS
+# ===========================================================================
+
+chain:
+  miner_commitment:
+    content: "Docker image reference + optional metadata"
+    rate_limit: "1 per ~100 blocks (~20 min)"
+  weight_setting:
+    method: "subtensor.set_weights()"
+    frequency: "Once per epoch (24 hours)"
+
+# ===========================================================================
+# VALIDATOR CONSENSUS
+# ===========================================================================
+
+consensus:
+  mechanism: yuma_consensus
+
+  process:
+    1: "Each validator independently runs full epoch"
+    2: "Validators compute per-UID scores from training results"
+    3: "EMA smoothing applied"
+    4: "Validators submit weight assignments on-chain"
+    5: "Yuma Consensus takes stake-weighted median"
+
+  fitted_parameter_risk: |
+    Peak E and α have inter-validator variance from CUDA non-determinism.
+    Mitigation: margin-based Pareto comparison.
+
+# ===========================================================================
+# COMPARISON TO OTHER PATTERNS
+# ===========================================================================
+
+pattern_comparison:
+  vs_numinous: "Both use agent software + containers. RADAR: architecture design + multi-scale training. Numinous: event forecasting + Brier Score."
+  vs_gradients: "Both evaluate code quality. RADAR: architecture design agents. Gradients: fine-tuning scripts + tournament."
+  vs_affine: "Both use Pareto scoring. RADAR: 4-axis scaling-aware Pareto. Affine: ε-Pareto over RL environments."
+  vs_weight_submission: "RADAR scores agent software, not pre-trained weights — reproducible, fair, rewards consistency."
+
+# ===========================================================================
+# CONNECTIONS TO KNOWLEDGE BASE
+# ===========================================================================
+
+knowledge_connections:
+  subnet.invariants.yaml:
+    validator_only_development: "Only validator code in this repo; miners build their own agents"
+    open_source_preference: "Best models visible in DB, agents receive top models as context"
+    compute_distribution: "Validators run agent containers AND training (necessary for verification)"
+
+  container_execution.yaml:
+    pattern_match: "Validators run miner agent software that designs architectures"
+    implementation: "Basilica containers for miner agents + validator multi-scale training"
+    key_detail: "Agents beat the baseline, they don't fork from it"
+
+  incentive.primitives.yaml:
+    commodity_type: "agent software (autonomous programs that design neural architectures)"
+    verification_method: "direct (train the code at multiple sizes, measure Peak E and α)"
+    scoring_formula: "4-axis Pareto → 3-bucket → EMA → softmax"
+    anti_gaming: "Borda proxies, fixed-step scaling, FLOP-normalised axes, margin-based Pareto"
+
+  design_flow.yaml:
+    commodity: software
+    ground_truth: "Validation loss at multiple scales"
+    pattern: container_execution
+
+  basilica.containers.yaml:
+    miner_pods: "Validator runs miner LLM agents in isolated containers"
+    training_pods: "GPU training on validator's trusted image"
+
+# ===========================================================================
+# LESSONS LEARNED
+# ===========================================================================
+
+lessons:
+  experiment_history_as_context:
+    insight: |
+      A database of past experiments gives LLM agents institutional memory.
+      The baseline code serves as high-quality few-shot context — even when
+      agents are free to design novel architectures, having a working example
+      produces better outputs than starting from scratch.
+    applies_to: "Any subnet where LLM agents benefit from seeing prior work"
+
+  multi_scale_screening:
+    insight: |
+      A multi-scale evaluation funnel (proxies → short multi-size train →
+      long single-size train) reduces compute costs 10-100x. Multi-size short
+      training adds only ~20-30% overhead while enabling α extraction.
+    applies_to: "Subnets with expensive evaluation"
+
+  four_axis_pareto:
+    insight: |
+      4 axes with Peak E and α as first-class (50% combined weight) directly
+      incentivises genuine architectural innovation. These axes do not improve
+      from hyperparameter tweaking — they require new inductive biases.
+    applies_to: "Multi-objective subnets where metric weighting is arbitrary"
+
+  margin_based_pareto:
+    insight: |
+      Fitted scaling parameters have inter-validator variance from CUDA
+      non-determinism. Fixed margins absorb this noise without requiring
+      identical float results across validators.
+    applies_to: "Any subnet using fitted parameters in Pareto scoring"
+
+  fixed_steps_vs_fixed_wallclock:
+    insight: |
+      Fixed steps for scaling measurement (fair comparison of architectural
+      quality); fixed wall-clock for practical evaluation (rewards deployment
+      efficiency). Separating the two resolves compute-asymmetric architecture
+      comparison cleanly.
+    applies_to: "Subnets evaluating architectures with different per-step compute costs"
+
+  irreducible_loss_as_innovation_signal:
+    insight: |
+      Peak E is the hardest metric to improve by tweaking — the same architecture
+      family converges to roughly the same E. A lower E requires a fundamentally
+      different inductive bias.
+    applies_to: "Subnets using scaling behaviour as a scoring signal"
+
+  log_uniform_size_sampling:
+    insight: |
+      Miners cannot optimise for specific size targets. Over many epochs, the
+      DB builds dense coverage of the full parameter range — sufficient for
+      population-level analysis.
+    applies_to: "Subnets accumulating empirical measurements over many epochs"
+
+# ===========================================================================
+# QUICK REFERENCE
+# ===========================================================================
+
+quick_reference:
+  measuring: "Neural architecture quality via Peak E, α, Best CRPS, and Best MASE at multiple scales"
+  pattern: "container_execution with agent software submission + multi-scale training funnel"
+  miner_provides: "Agent software (LLM-backed programs) that design neural network architectures"
+  validator_does: "Assigns baseline, runs agent containers, filters via proxies, trains at 4 log-uniform sizes, scores via 4-axis Pareto"
+  epoch_length: "24 hours"
+  evaluation_funnel: "~N submissions → 16 (proxy) → 19 (short train, 3 sizes) → 3 (long train, 1 size)"
+  scoring: "4-axis Pareto (Peak E, α, Best CRPS, Best MASE) → 3-bucket (5%/20%/75%) → EMA → softmax"
+  ground_truth: "Validation loss at 4 log-uniform parameter scales"
+  current_task: "time_series_foundation (MASE/CRPS metrics)"
+  novel_mechanisms:
+    - "Agent software as commodity — score consistent design capability, not one-off luck"
+    - "Experiment history DB as LLM agent context"
+    - "4-axis margin-based Pareto with Peak E and α as first-class scaling axes"
+    - "Dual fixed-step (short) / fixed-wallclock (long) training protocol"
+    - "Log-uniform size sampling per epoch for anti-gaming and dense DB coverage"
+    - "FLOP-normalised fitting for MoE and compute-asymmetric architecture fairness"
+  scientific_basis: "Barkeshli et al. (arXiv:2601.10684) — scaling law fitting methodology"
+  key_invariant: "Miners submit agent software — validators run the agents AND train the output at multiple scales on trusted infrastructure"
